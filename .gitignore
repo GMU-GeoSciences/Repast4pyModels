@@ -1,2 +1,5 @@
 */__MACOSX/
 .DS_Store
+repast4py/input/
+repast4py/output/
+.ipynb_checkpoints/
