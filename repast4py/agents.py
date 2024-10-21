@@ -5,6 +5,10 @@ from typing import Tuple
 
 import numpy as np
 
+import logging as pylog # Repast logger is called as "logging"
+
+log = pylog.getLogger(__name__)
+
 class Deer(core.Agent):
     """The Deer Agent.
 
@@ -25,7 +29,7 @@ class Deer(core.Agent):
         self.infected_duration = 0 # How many days/hours/steps this agent has been infected
         
         # Deer Vars
-        self.home_range_centroid = (0,0) #Home range. 
+        self.home_range_centroid = (0,0) #Home range centroid x,y. 
         self.home_range_diameter = 2 # Diameter of home range, assuming it's all circular. 
         self.speed_scaling_factor = 1 # Grid scaling factor. 1 == deer moves ~1 spatial unit per tick
         self.behaviour_state = 0 #Some indicator of behaviour; foraging, resting, travelling etc. Can maybe be a tuple?
@@ -44,6 +48,8 @@ class Deer(core.Agent):
 
         Returns:
             The saved state of this agent.
+
+        Example: ((5, 0, 1), False, 0, (0, 0), 2, 1, 0)
         """ 
         return (self.uid, 
                 self.is_infected, 
@@ -119,17 +125,12 @@ class Deer(core.Agent):
         self.infected_duration += 1 
         return
 
-    def agent_step(self, model):
+    def step(self, last_location, tick):
         '''
         Function for the agent class to change behaviour state, and location. 
 
         Should be called in the model.step function. 
         ''' 
-        location = model.space.get_location(model)
-        tick = model.runner.schedule.tick
-
-        next_x, next_y = self.calculate_next_pos(self, location.x, location.y, tick)
+        next_x, next_y = self.calculate_next_pos(last_location.x, last_location.y, tick)
         self.calculate_next_state()
-
-        model.move(self, next_x, next_y)
-        return
+        return next_x, next_y

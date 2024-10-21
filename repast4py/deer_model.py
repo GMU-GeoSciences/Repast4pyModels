@@ -19,8 +19,11 @@ from datetime import datetime, timedelta
 # Local Files
 from agents import Deer
 
-model = None
+# model = None
 agent_tuple_cache = {}
+log = pylog.getLogger(__name__)
+
+
 def restore_agent(agent_tuple: Tuple):
     """
     Args:
@@ -33,21 +36,29 @@ def restore_agent(agent_tuple: Tuple):
     TODO: Test Caching. Maybe try pyfuncs decorator? 
     Does the caching make sense? I can't really see how it would make any difference to update vs recreate a tuple. 
     TODO: Make flexible for multiple agent types
-    """
-    uid = agent_tuple[0]  
 
-    if uid[1] == Deer.TYPE:
-        if uid in agent_tuple:
+    Deer tuple example: ((5, 0, 1), False, 0, (0, 0), 2, 1, 0)
+    (5, 0 ,1) == (AgentID, Type, Rank)
+    """
+    log.debug(f'Restoring agent: {agent_tuple}')
+    uid = agent_tuple[0]
+    if uid[1] == Deer.TYPE: #This should always be true
+        if uid in agent_tuple_cache:
             # Agent exists in cache.
             agent = agent_tuple_cache[uid]
         else:
-            # Create agent from tuple
-            agent = Deer(uid[0], uid[2], pt) # Does this
+            # Cache this agent
+            agent = Deer(uid[0], uid[2]) #(agent_id, rank)
             agent_tuple_cache[uid] = agent
 
-        agent.pt = pt
+        agent.is_infected = agent_tuple[1]
+        agent.infected_duration = agent_tuple[2]
+        agent.home_range_centroid = agent_tuple[3]
+        agent.home_range_diameter = agent_tuple[4]
+        agent.speed_scaling_factor = agent_tuple[5]
+        agent.behaviour_state = agent_tuple[6]
     else:
-        pylog.warning('Unknown agent type.')
+        log.warning('Unknown agent type.')
         agent = None
     return agent
 
@@ -75,7 +86,7 @@ class Model:
         '''
         Initialise the Model Class
         '''
-        pylog.debug('Initialising Repast model...')
+        log.debug('Initialising Repast model...')
 
         self.params = params
         self.comm = comm
@@ -110,81 +121,134 @@ class Model:
         # Setup the instrumentation to measure the outputs of the sim
         self.metrics = Metrics()
         
-
         # Initialise agents
+        total_agent_count = params.get('sim',{}).get('num_deer_agents')
+        world_size = comm.Get_size()
+        agents_per_rank = int(total_agent_count / world_size)
+        if self.rank < total_agent_count % world_size:
+            agents_per_rank += 1
 
+        log.debug(f"Creating {total_agent_count} deer agents over {world_size} nodes ({agents_per_rank} agents/node)...")
+        
+        ## Creating count_per_rank agents on this node
+        for this_agent_id in range(agents_per_rank):
+            self.add_agent(this_agent_id)
+            # TODO: This should come out of an init parq file..
+
+        self.last_agent_id = this_agent_id
 
     def start_sim(self):
         '''
         Start the agents and model.  
         '''
-        pylog.debug('Starting model...')
+        log.debug('Starting model...')
         self.runner.execute()
 
     def end_sim(self):
         '''
         Clean up and log data.
         '''
-        pylog.debug(f'Cleaning up simulation...')
+        log.debug(f'Cleaning up simulation...')
+        # self.data_set.close()
+        #TODO: figure out logging. Is it going to be [time,x,y,data] ? 
 
-    def add_agent(self):
+    def add_agent(self, id, x = None, y = None):
         '''
-        Add and agent to the sim
+        Add agent to the sim located at Point(x,y).
+        If no location specified then place randomly in local bounds.
         '''
-        pylog.debug(f'Adding agent...')
+        local_bounds = self.space.get_local_bounds()    
+        if (x is None) or (y is None): 
+            x = random.default_rng.uniform(local_bounds.xmin, local_bounds.xmin + local_bounds.xextent)
+            y = random.default_rng.uniform(local_bounds.ymin, local_bounds.ymin + local_bounds.yextent)
+        
+        agent = Deer(id, self.rank)
+        log.debug(f'Creating Rank:Agent {self.rank}:{agent.id}.')
+        #TODO: add more vars to deer agent here
+        self.contexts['deer'].add(agent)
+        self.move_agent(agent,x,y)
 
-    def remove_agent(self):
+    def remove_agent(self, agent):
         '''
         Remove an agent from the sim. 
         '''
-        pylog.debug(f'Removing agent...')
+        log.debug(f'Removing agent...')
+        self.context.remove(agent)
+        return
 
-    def move_agents(self):
+    def move_agent(self, agent, x, y):
         '''
         Agents move in space over one tick
         '''
-        pylog.debug(f'Moving agents...')
+        log.debug(f'Moving agent {self.rank}:{agent.id} to Point({x},{y})...')
+        self.space.move(agent, cpt(x,y))
+        return
 
     def step(self):
         '''
         Increment the sim by one step.
         '''
-        pylog.debug(f'Stepping...')
+        log.debug(f'Stepping...')
+        tick = self.runner.schedule.tick
+        self.log_metrics(tick)
+        log.debug('Synchron')
+        self.contexts['deer'].synchronize(restore_agent)
+
+        log.debug('Looping through agents')
+        for agent in self.contexts['deer'].agents(Deer.TYPE):
+            log.debug(f'Working with agent {self.rank}:{agent.id}')
+            #For each DEER agent do something:
+            location = model.space.get_location(agent)
+            tick = model.runner.schedule.tick
+            next_x,next_y = agent.step(location, tick)
+            self.move_agent(agent, next_x, next_y)
     
-    def log_metrics(self):
+    def log_metrics(self, tick):
         '''
         Log the outputs of the tick to a file.
         '''
-        pylog.debug(f'Logging metrics...') 
+        log.debug(f'Logging metrics...') 
+        num_agents = self.contexts['deer'].size([Deer.TYPE])
+
+        if tick % 10 == 0:
+            log.info(f"Tick: {tick}: Agent count: {num_agents}")
  
 
 def setup_logging(params):
     '''
     Setup the logging for both Repast4Py as well as a normal python logger
     '''
+
+    # Setup a command line logger.
+    loglevel = params['logging']['loglevel']
+    pylog.basicConfig(level=loglevel, format='%(asctime)s %(relativeCreated)6d %(threadName)s ::%(levelname)-8s %(message)s')
+    log = pylog.getLogger()
+
     if params.get('sim',{}).get('environment') == 'hopper':
-        # Do not setup a command line logger.
-        pass
+        # Only log ERROR's
+        log.setLevel('ERROR')
 
     elif params.get('sim',{}).get('environment') == 'local':
-        # Setup a command line logger.
-        loglevel = params['logging']['loglevel']
-        pylog.basicConfig(level=loglevel, format='%(asctime)s %(relativeCreated)6d %(threadName)s ::%(levelname)-8s %(message)s')
-        pylog.debug('Ready to log!')
-        pylog.info(f'Params: {params}')
-
+        # Set Log level
+        log.setLevel(loglevel)
     else:
         # Do not setup a command line logger.
-        print('Unknown Environment...')
+        log.setLevel('ERROR')
+        log.error('Unknown Environment...')
+
+    log.debug('Ready to log!')
+    log.info(f'Params: {params}')
+    return log
 
 def run(params: Dict):
-    setup_logging(params)
+    global model
     model = Model(MPI.COMM_WORLD, params)
-    # model.start()
+    model.start_sim()
 
 if __name__ == "__main__":
     parser = parameters.create_args_parser()
     args = parser.parse_args()
     params = parameters.init_params(args.parameters_file, args.parameters)
+    setup_logging(params)
     run(params)
-    pylog.info('==END==')
+    log.info('==END==')

@@ -1,0 +1,11 @@
+sim:
+ end_tick: 30 # Number of time steps to run for
+ num_deer_agents: 30 # Number of deer agents to simulate
+ environment: local # Can be "hopper" or "local". Changes some of the logging to make sense for big sims.
+
+
+files:
+  input_agents: 'input/deer_agents.parq' # Starting params for each deer agent.
+
+logging:
+  agent_log_file: 'output/agent_log.csv'
