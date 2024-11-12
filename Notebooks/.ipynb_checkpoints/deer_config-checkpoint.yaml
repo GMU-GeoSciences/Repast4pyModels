@@ -8,4 +8,4 @@ files:
   input_agents: 'input/deer_agents.parq' # Starting params for each deer agent.
 
 logging:
-  agent_log_file: 'output/agent_log.csv'
+  agent_log_file: 'output/agent_log.csv' # Sim results file

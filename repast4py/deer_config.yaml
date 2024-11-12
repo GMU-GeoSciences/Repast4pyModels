@@ -1,18 +1,71 @@
 sim:
- end_tick: 30 # Number of time steps to run for
- num_deer_agents: 30 # Number of deer agents to simulate
  environment: local # Can be "hopper" or "local". Changes some of the logging to make sense for big sims.
 
 geo: 
   # Envelope for grid/continuous space for the simulation. Must be integers
-  x_min: 0
-  x_max: 100
-  y_min: 0
-  y_max: 100
+  # Dummy bounding box for Fairfax in EPSG 3857 
+  # -8587456, 4729698,-8555705, 4751385
+  x_min: -8587456
+  x_max: -8555705
+  y_min: 4729698
+  y_max: 4751385
 
-files:
+time: 
+  start_time: "2007-03-01T13:00:00Z" #ISO 8601 Timestamp
+  hours_per_tick: 1
+  end_tick: 10000 
+ 
+logging:
+  loglevel: INFO # can be DEBUG, INFO, WARNING, ERROR
+  agent_log_file: 'output/agent_log.csv'
+
+agent_init: # Config for creating agent parameters
+  max_deer_pop_size: 1000 
+
+deer:
+  pop_size: 101 # Number of deer agents to simulate
+  disease_starting_ratio: 0 # What ratio of deer start sim being sick.
   input_agents: 'input/deer_agents.parq' # Starting params for each deer agent.
 
-logging:
-  loglevel: DEBUG # can be DEBUG, INFO, WARNING, ERROR
-  agent_log_file: 'output/agent_log.csv'
+
+deer_control_vars:  # From https://www.researchgate.net/publication/363077733_The_effect_of_landscape_transmission_mode_and_social_behavior_on_disease_transmission_Simulating_the_transmission_of_chronic_wasting_disease_in_white-tailed_deer_Odocoileus_virginianus_populations_usi
+  #############################
+  male_disperse_prob: 0.7 # (Hawkins et al., 1971; Nixon et al., 2007, 1994; Rosenberry et al., 1999) 
+  female_disperse_prob: 0.2 # (Hawkins et al., 1971; Nixon et al., 2007, 1994; Rosenberry et al., 1999) 
+  explore_chance:
+    gestation: 0.32
+    fawning: 0.08
+    prerut: 0.2
+    rut: 0.96
+    duration: 
+      min: 12 
+      max: 24 #Hours
+  gestation:
+    min: 187 #Daysx
+    max: 222 #Days
+    fawn_prob:
+      one: 0.25
+      two: 0.5
+      three: 0.25
+  grouping:
+    adhesion:
+      female: 
+        normal: 0.95
+        fawning: 0
+      male:
+        normal: 0.4
+        rut: 0
+    size_max:
+      male: 10
+      female: 4
+  annual_mortality:
+    female: 0.2
+    male: 0.4
+    fawn: 0.2
+  annual_schedule: #ISO8601 --MM-DD .strftime('%m-%d')
+    gestation_start: 01-01
+    fawning_start: 05-15
+    prerut_start: 09-01
+    rut_start: 11-01
+
+  #TODO: put file in here controlling the deer movement 

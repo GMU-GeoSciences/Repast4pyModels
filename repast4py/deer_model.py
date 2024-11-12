@@ -67,8 +67,19 @@ class Metrics:
     '''
     Dataclass used by repast4py aggregate logging to record
     some metrics after each tick.
+
+    Currently recording:
+        - agent id: something to identify the agent. Might be a combination of rank and ID
+        - tick timestamp: TODO: Convert the tick to a timestamp
+        - Behaviour state: What was the agent doing? Foraging/resting/etc?
+        - Location: X/Y location of agent at tick time.
+
     '''
-    deer: int = 0
+    agent_id: int = 0
+    tick: int = 0
+    agent_location_x: float = 0
+    agent_location_y: float = 0
+    agent_behaviour_state: int = 0
 
 class Model:
     """
@@ -93,10 +104,15 @@ class Model:
         self.rank = self.comm.Get_rank()
         self.contexts["deer"] = context.SharedContext(comm) # https://repast.github.io/repast4py.site/guide/user_guide.html#_contexts_and_projections
         self.runner = schedule.init_schedule_runner(comm)
-        self.runner.schedule_repeating_event(1, 1, self.step)
+        self.runner.schedule_repeating_event(1, 1, self.step)  
+
         self.runner.schedule_stop(params['sim']['end_tick'])
         self.runner.schedule_end_event(self.end_sim)
 
+        self.start_timestamp = datetime.fromisoformat(params['time']['start_time'])
+        self.tick_time = self.start_timestamp
+        self.tick_hour_interval = params['time']['hours_per_tick']
+         
         # Setup the spatial side of the sim.
         x_height = int(params['geo']['x_max']) - int(params['geo']['x_min'])
         y_height = int(params['geo']['y_max']) - int(params['geo']['y_min'])
@@ -120,6 +136,10 @@ class Model:
 
         # Setup the instrumentation to measure the outputs of the sim
         self.metrics = Metrics()
+        self.agent_logger = logging.TabularLogger(comm, 
+                                                  params.get('logging').get('agent_log_file'), 
+                                                  ['tick', 'agent_id', 'agent_uid_rank', 'x', 'y', 'state'])
+
         
         # Initialise agents
         total_agent_count = params.get('sim',{}).get('num_deer_agents')
@@ -163,6 +183,14 @@ class Model:
             y = random.default_rng.uniform(local_bounds.ymin, local_bounds.ymin + local_bounds.yextent)
         
         agent = Deer(id, self.rank)
+        #################
+        # TODO: Init the models:
+        agent.home_range_centroid = (x,y)
+        agent.random_starter_seed = id
+
+        agent.speed_scaling_factor = 100
+        agent.home_range_diameter = 1000
+        #################
         log.debug(f'Creating Rank:Agent {self.rank}:{agent.id}.')
         #TODO: add more vars to deer agent here
         self.contexts['deer'].add(agent)
@@ -190,6 +218,7 @@ class Model:
         '''
         log.debug(f'Stepping...')
         tick = self.runner.schedule.tick
+        self.tick_time = self.start_timestamp + timedelta(hours=self.tick_hour_interval)
         self.log_metrics(tick)
         log.debug('Synchron')
         self.contexts['deer'].synchronize(restore_agent)
@@ -199,8 +228,7 @@ class Model:
             log.debug(f'Working with agent {self.rank}:{agent.id}')
             #For each DEER agent do something:
             location = model.space.get_location(agent)
-            tick = model.runner.schedule.tick
-            next_x,next_y = agent.step(location, tick)
+            next_x,next_y = agent.step(location, self.tick_time)
             self.move_agent(agent, next_x, next_y)
     
     def log_metrics(self, tick):
@@ -212,6 +240,19 @@ class Model:
 
         if tick % 10 == 0:
             log.info(f"Tick: {tick}: Agent count: {num_agents}")
+
+        for agent in self.contexts['deer'].agents():
+            location = model.space.get_location(agent)
+            # Table: ['tick', 'agent_id', 'agent_uid_rank', 'x', 'y', 'state']
+            self.agent_logger.log_row(tick, 
+                                      agent.id, 
+                                      agent.uid_rank, 
+                                      location.x,
+                                      location.y,
+                                      agent.behaviour_state)
+
+        self.agent_logger.write()
+        return
  
 
 def setup_logging(params):
