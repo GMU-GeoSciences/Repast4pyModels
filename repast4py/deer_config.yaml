@@ -11,25 +11,24 @@ geo:
   y_max: 4751385
 
 time: 
-  start_time: "2007-03-01T13:00:00Z" #ISO 8601 Timestamp
+  start_time: "2000-01-01T00:00:00" #ISO 8601 Timestamp
   hours_per_tick: 1
-  end_tick: 10000 
+  end_tick: 1000
  
 logging:
   loglevel: INFO # can be DEBUG, INFO, WARNING, ERROR
   agent_log_file: 'output/agent_log.csv'
 
 agent_init: # Config for creating agent parameters
-  max_deer_pop_size: 1000 
+  max_deer_pop_size: 1000
 
 deer:
-  pop_size: 101 # Number of deer agents to simulate
+  pop_size: 1000 # Number of deer agents to simulate
   disease_starting_ratio: 0 # What ratio of deer start sim being sick.
   input_agents: 'input/deer_agents.parq' # Starting params for each deer agent.
 
 
 deer_control_vars:  # From https://www.researchgate.net/publication/363077733_The_effect_of_landscape_transmission_mode_and_social_behavior_on_disease_transmission_Simulating_the_transmission_of_chronic_wasting_disease_in_white-tailed_deer_Odocoileus_virginianus_populations_usi
-  #############################
   male_disperse_prob: 0.7 # (Hawkins et al., 1971; Nixon et al., 2007, 1994; Rosenberry et al., 1999) 
   female_disperse_prob: 0.2 # (Hawkins et al., 1971; Nixon et al., 2007, 1994; Rosenberry et al., 1999) 
   explore_chance:
@@ -67,5 +66,8 @@ deer_control_vars:  # From https://www.researchgate.net/publication/363077733_Th
     fawning_start: 05-15
     prerut_start: 09-01
     rut_start: 11-01
+  age:
+    fawn_to_adult: 12 #months
+    adult_max: 100 #months. Max age of agents
 
   #TODO: put file in here controlling the deer movement 

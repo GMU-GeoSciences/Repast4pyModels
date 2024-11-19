@@ -5,9 +5,12 @@ import logging as pylog # Repast logger is called as "logging"
 
 from typing import Dict, Tuple
 from mpi4py import MPI
-from dataclasses import dataclass
+from dataclasses import dataclass, field, fields, asdict
+
 import collections
 import csv
+
+import random as rndm
 
 from repast4py import core, random, space, schedule, logging, parameters
 from repast4py import context 
@@ -17,7 +20,7 @@ from repast4py.space import DiscretePoint as dpt
 from datetime import datetime, timedelta
 
 # Local Files
-from agents import Deer
+from deer_agent.deer_agent import Deer, Deer_Config
 
 # model = None
 agent_tuple_cache = {}
@@ -33,15 +36,11 @@ def restore_agent(agent_tuple: Tuple):
         agent_tuple[2]: Rank
         agent_tuple[3+]: Internal state of agent
 
-    TODO: Test Caching. Maybe try pyfuncs decorator? 
-    Does the caching make sense? I can't really see how it would make any difference to update vs recreate a tuple. 
-    TODO: Make flexible for multiple agent types
-
-    Deer tuple example: ((5, 0, 1), False, 0, (0, 0), 2, 1, 0)
+    Deer tuple example: ((5, 0, 1), CFG_Dict_Object)
     (5, 0 ,1) == (AgentID, Type, Rank)
     """
     log.debug(f'Restoring agent: {agent_tuple}')
-    uid = agent_tuple[0]
+    uid = agent_tuple[0] 
     if uid[1] == Deer.TYPE: #This should always be true
         if uid in agent_tuple_cache:
             # Agent exists in cache.
@@ -49,14 +48,11 @@ def restore_agent(agent_tuple: Tuple):
         else:
             # Cache this agent
             agent = Deer(uid[0], uid[2]) #(agent_id, rank)
+            agent_cfg = agent_tuple[1]
+            agent.set_cfg(agent_cfg)
             agent_tuple_cache[uid] = agent
 
-        agent.is_infected = agent_tuple[1]
-        agent.infected_duration = agent_tuple[2]
-        agent.home_range_centroid = agent_tuple[3]
-        agent.home_range_diameter = agent_tuple[4]
-        agent.speed_scaling_factor = agent_tuple[5]
-        agent.behaviour_state = agent_tuple[6]
+        agent.cfg = agent_tuple[1]
     else:
         log.warning('Unknown agent type.')
         agent = None
@@ -76,7 +72,7 @@ class Metrics:
 
     '''
     agent_id: int = 0
-    tick: int = 0
+    tick_timestamp: str = datetime.fromtimestamp(0).isoformat()
     agent_location_x: float = 0
     agent_location_y: float = 0
     agent_behaviour_state: int = 0
@@ -106,7 +102,7 @@ class Model:
         self.runner = schedule.init_schedule_runner(comm)
         self.runner.schedule_repeating_event(1, 1, self.step)  
 
-        self.runner.schedule_stop(params['sim']['end_tick'])
+        self.runner.schedule_stop(params['time']['end_tick'])
         self.runner.schedule_end_event(self.end_sim)
 
         self.start_timestamp = datetime.fromisoformat(params['time']['start_time'])
@@ -137,12 +133,12 @@ class Model:
         # Setup the instrumentation to measure the outputs of the sim
         self.metrics = Metrics()
         self.agent_logger = logging.TabularLogger(comm, 
-                                                  params.get('logging').get('agent_log_file'), 
-                                                  ['tick', 'agent_id', 'agent_uid_rank', 'x', 'y', 'state'])
+                                                  self.params.get('logging',{}).get('agent_log_file'), 
+                                                  ['tick', 'agent_id', 'agent_uid_rank', 'timestamp', 'x', 'y', 'state'])
 
         
         # Initialise agents
-        total_agent_count = params.get('sim',{}).get('num_deer_agents')
+        total_agent_count = self.params.get('deer',{}).get('pop_size')
         world_size = comm.Get_size()
         agents_per_rank = int(total_agent_count / world_size)
         if self.rank < total_agent_count % world_size:
@@ -152,8 +148,7 @@ class Model:
         
         ## Creating count_per_rank agents on this node
         for this_agent_id in range(agents_per_rank):
-            self.add_agent(this_agent_id)
-            # TODO: This should come out of an init parq file..
+            self.add_agent(this_agent_id) 
 
         self.last_agent_id = this_agent_id
 
@@ -184,15 +179,12 @@ class Model:
         
         agent = Deer(id, self.rank)
         #################
-        # TODO: Init the models:
-        agent.home_range_centroid = (x,y)
-        agent.random_starter_seed = id
-
-        agent.speed_scaling_factor = 100
-        agent.home_range_diameter = 1000
+        # TODO: Init the models: 
+        deer_cfg = Deer_Config()  
+        deer_cfg_object = deer_cfg.rand_factory(params)
+        agent.set_cfg(deer_cfg_object)
         #################
-        log.debug(f'Creating Rank:Agent {self.rank}:{agent.id}.')
-        #TODO: add more vars to deer agent here
+        log.debug(f'Creating Rank:Agent {self.rank}:{agent.id}.') 
         self.contexts['deer'].add(agent)
         self.move_agent(agent,x,y)
 
@@ -218,9 +210,8 @@ class Model:
         '''
         log.debug(f'Stepping...')
         tick = self.runner.schedule.tick
-        self.tick_time = self.start_timestamp + timedelta(hours=self.tick_hour_interval)
-        self.log_metrics(tick)
-        log.debug('Synchron')
+        self.tick_time = self.start_timestamp + timedelta(hours=self.tick_hour_interval)*tick
+        self.log_metrics(tick) 
         self.contexts['deer'].synchronize(restore_agent)
 
         log.debug('Looping through agents')
@@ -239,14 +230,16 @@ class Model:
         num_agents = self.contexts['deer'].size([Deer.TYPE])
 
         if tick % 10 == 0:
-            log.info(f"Tick: {tick}: Agent count: {num_agents}")
+            log.info(f"  - Tick: {tick}: Agent count: {num_agents}")
+            log.info(f"  - Timestamp: {self.tick_time.isoformat()}")
 
         for agent in self.contexts['deer'].agents():
             location = model.space.get_location(agent)
             # Table: ['tick', 'agent_id', 'agent_uid_rank', 'x', 'y', 'state']
             self.agent_logger.log_row(tick, 
                                       agent.id, 
-                                      agent.uid_rank, 
+                                      agent.uid_rank,
+                                      self.tick_time.isoformat(),
                                       location.x,
                                       location.y,
                                       agent.behaviour_state)

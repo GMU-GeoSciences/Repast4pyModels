@@ -1,1 +1,8 @@
 # Don't need to avoid adding anything to the docker build env yet...
+*/__MACOSX/
+.DS_Store
+./Docs/*
+./building_assignment_input_files/*
+./git/*
+./Notebooks/*
+./ipynb_check
