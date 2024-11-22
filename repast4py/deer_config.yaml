@@ -3,12 +3,11 @@ sim:
 
 geo: 
   # Envelope for grid/continuous space for the simulation. Must be integers
-  # Dummy bounding box for Fairfax in EPSG 3857 
-  # -8587456, 4729698,-8555705, 4751385
-  x_min: -8587456
-  x_max: -8555705
-  y_min: 4729698
-  y_max: 4751385
+  # Dummy bounding box for Fairfax in EPSG 5070  
+  x_min: 1603849
+  x_max: 1637294
+  y_min: 1950179
+  y_max: 1973346
 
 time: 
   start_time: "2000-01-01T00:00:00" #ISO 8601 Timestamp

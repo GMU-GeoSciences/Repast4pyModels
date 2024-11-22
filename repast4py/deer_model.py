@@ -235,6 +235,7 @@ class Model:
 
         for agent in self.contexts['deer'].agents():
             location = model.space.get_location(agent)
+            # Scale location back to a normal projection. 
             # Table: ['tick', 'agent_id', 'agent_uid_rank', 'x', 'y', 'state']
             self.agent_logger.log_row(tick, 
                                       agent.id, 
