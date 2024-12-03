@@ -58,16 +58,16 @@ class Deer_Config(object):
         '''
         last_point = Point(self.current_x,self.current_y)
         current_point = Point(self.current_x,self.current_y)
-        centroid = Point(self.current_x,self.current_y)
+        centroid = Point(self.current_x, self.current_y)
         self.pos = Position_Vector(last_point, current_point, centroid) 
     
     @classmethod
-    def rand_factory(cls, params):
+    def rand_factory(cls, x, y, params):
         '''
         Returns a randomised deer agent config
         '''
-        initial_x = rndm.randint(params['geo']['x_min'], params['geo']['x_max'])
-        initial_y = rndm.randint(params['geo']['y_min'], params['geo']['y_max'])
+        initial_x = x
+        initial_y = y
         initial_timestamp = datetime.datetime.fromisoformat(params['time']['start_time']) 
 
         return cls(

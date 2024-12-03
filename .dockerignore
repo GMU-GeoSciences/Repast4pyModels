@@ -2,7 +2,11 @@
 */__MACOSX/
 .DS_Store
 ./Docs/*
+./Docs/
 ./building_assignment_input_files/*
+./buildings_assignment_input_files
 ./git/*
+./git
 ./Notebooks/*
 ./ipynb_check
+./output/*

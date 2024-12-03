@@ -11,20 +11,28 @@ import collections
 import csv
 
 import random as rndm
+import torch
 
 from repast4py import core, random, space, schedule, logging, parameters
 from repast4py import context 
 from repast4py.space import ContinuousPoint as cpt
 from repast4py.space import BorderType, OccupancyType
 from repast4py.space import DiscretePoint as dpt
+from repast4py.value_layer import SharedValueLayer
 from datetime import datetime, timedelta
 
 # Local Files
 from deer_agent.deer_agent import Deer, Deer_Config
+from landscape import fetch_img 
 
 # model = None
 agent_tuple_cache = {}
 log = pylog.getLogger(__name__)
+
+'''
+Some Examples:
+https://github.com/Meguazy/Multi-agent-systems-and-parkinson/blob/main/src/parkinson.py 
+'''
 
 
 def restore_agent(agent_tuple: Tuple):
@@ -75,6 +83,7 @@ class Metrics:
     tick_timestamp: str = datetime.fromtimestamp(0).isoformat()
     agent_location_x: float = 0
     agent_location_y: float = 0
+    canopy_cover: float = 0
     agent_behaviour_state: int = 0
 
 class Model:
@@ -94,7 +103,6 @@ class Model:
         Initialise the Model Class
         '''
         log.debug('Initialising Repast model...')
-
         self.params = params
         self.comm = comm
         self.rank = self.comm.Get_rank()
@@ -108,33 +116,16 @@ class Model:
         self.start_timestamp = datetime.fromisoformat(params['time']['start_time'])
         self.tick_time = self.start_timestamp
         self.tick_hour_interval = params['time']['hours_per_tick']
-         
-        # Setup the spatial side of the sim.
-        x_height = int(params['geo']['x_max']) - int(params['geo']['x_min'])
-        y_height = int(params['geo']['y_max']) - int(params['geo']['y_min'])
-
-        bbox = space.BoundingBox(int(params['geo']['x_min']), 
-                                x_height, 
-                                int(params['geo']['y_min']), 
-                                y_height, 
-                                0, 
-                                0)
         
-        self.space = space.SharedCSpace('space', 
-                                        bounds=bbox, 
-                                        borders=BorderType.Sticky, 
-                                        occupancy=OccupancyType.Multiple,
-                                        buffer_size=2, 
-                                        comm=comm, 
-                                        tree_threshold=100)
-        
-        self.contexts["deer"].add_projection(self.space)
-
+        # Setup the grids, read a raster file in, 
+        # # and transfer it into a shared_value array
+        self.setup_repast_spatial()
+          
         # Setup the instrumentation to measure the outputs of the sim
         self.metrics = Metrics()
         self.agent_logger = logging.TabularLogger(comm, 
                                                   self.params.get('logging',{}).get('agent_log_file'), 
-                                                  ['tick', 'agent_id', 'agent_uid_rank', 'timestamp', 'x', 'y', 'state'])
+                                                  ['tick', 'agent_id', 'agent_uid_rank', 'timestamp', 'x', 'y', 'canopy', 'state'])
 
         
         # Initialise agents
@@ -151,6 +142,79 @@ class Model:
             self.add_agent(this_agent_id) 
 
         self.last_agent_id = this_agent_id
+
+    def setup_repast_spatial(self):
+        '''
+        Return a shared grid, shared continuous space and a shared value layer/s
+        that contain a space for agents to move on and
+        a grid for agents to look for neighbours on (similar to zombie example)
+        and a shared layer to hold geotiff data. 
+
+        Because of limitation on the way repast handles grids the grid will be
+        scaled to the raster resolution. 
+        ''' 
+        log.debug('Initialising Repast spatial grids...')
+        canopy = fetch_img.WCS_Info(layer_id='mrlc_download:nlcd_tcc_conus_2019_v2021-4',
+                 wcs_url = 'https://www.mrlc.gov/geoserver/ows', 
+                 epsg = 'EPSG:5070',
+                 path = params['geo']['tiff_path'],
+                 bounds = [int(params['geo']['x_min']), 
+                           int(params['geo']['x_max']), 
+                           int(params['geo']['y_min']), 
+                           int(params['geo']['y_max'])], 
+                 description = '2019 NLCD Canopy Estimate for Howard County'
+                 )
+
+        # xy_resolution and image_bounds are going to get overloaded if multiple rasters are ingested from different sources
+        # Either stick to a single source, a single raster, or figure this out...
+        canopy_array, self.xy_resolution, self.image_bounds = fetch_img.fetch_img(canopy) 
+
+        log.info(f'WCS Array shape: {canopy_array.shape}')
+        log.info(f'WCS Image Bounds: {self.image_bounds}')
+
+        # Convert projection units to pixel units:
+        projection_bounds = space.BoundingBox(0, 
+                                    canopy_array.shape[1], 
+                                    0, 
+                                    canopy_array.shape[0], 
+                                    0, 
+                                    0) # Canopy_array returned as (y,x,z) >> (rows, columns, bands) of geotiff
+        log.info(f'Total Projection bounds: {projection_bounds}')
+
+        self.canopy_layer = SharedValueLayer(comm = self.comm, 
+                                        bounds = projection_bounds, 
+                                        borders = space.BorderType.Sticky, 
+                                        buffer_size = int(params['geo']['buffer_size']), 
+                                        init_value = 0)
+
+        log.info(f'This Rank Projection bounds: {self.canopy_layer.bounds}')
+
+        xy = [self.canopy_layer.bounds.ymin, 
+              self.canopy_layer.bounds.ymin + self.canopy_layer.bounds.yextent,
+              self.canopy_layer.bounds.xmin, 
+              self.canopy_layer.bounds.xmin + self.canopy_layer.bounds.xextent ] 
+         
+        sub_array = canopy_array[xy[0]:xy[1],xy[2]:xy[3],0] 
+        self.canopy_layer.grid[:,:] = torch.from_numpy(sub_array).type(torch.float64)
+
+        self.grid = space.SharedGrid('grid', 
+                                bounds = projection_bounds, 
+                                borders = space.BorderType.Sticky, 
+                                occupancy = OccupancyType.Multiple,
+                                buffer_size = int(params['geo']['buffer_size']), 
+                                comm=self.comm)
+
+        self.shared_space = space.SharedCSpace('space', 
+                                bounds = projection_bounds, 
+                                borders = BorderType.Sticky, 
+                                occupancy = OccupancyType.Multiple,
+                                buffer_size = int(params['geo']['buffer_size']), 
+                                comm=self.comm, 
+                                tree_threshold=100)
+
+        self.contexts['deer'].add_projection(self.grid) 
+        self.contexts['deer'].add_projection(self.shared_space)
+        self.contexts['deer'].add_value_layer(self.canopy_layer)
 
     def start_sim(self):
         '''
@@ -172,7 +236,7 @@ class Model:
         Add agent to the sim located at Point(x,y).
         If no location specified then place randomly in local bounds.
         '''
-        local_bounds = self.space.get_local_bounds()    
+        local_bounds = self.shared_space.get_local_bounds()    
         if (x is None) or (y is None): 
             x = random.default_rng.uniform(local_bounds.xmin, local_bounds.xmin + local_bounds.xextent)
             y = random.default_rng.uniform(local_bounds.ymin, local_bounds.ymin + local_bounds.yextent)
@@ -181,8 +245,9 @@ class Model:
         #################
         # TODO: Init the models: 
         deer_cfg = Deer_Config()  
-        deer_cfg_object = deer_cfg.rand_factory(params)
+        deer_cfg_object = deer_cfg.rand_factory(x,y,params)
         agent.set_cfg(deer_cfg_object)
+        # agent.
         #################
         log.debug(f'Creating Rank:Agent {self.rank}:{agent.id}.') 
         self.contexts['deer'].add(agent)
@@ -201,7 +266,8 @@ class Model:
         Agents move in space over one tick
         '''
         log.debug(f'Moving agent {self.rank}:{agent.id} to Point({x},{y})...')
-        self.space.move(agent, cpt(x,y))
+        self.shared_space.move(agent, cpt(x,y))
+        self.grid.move(agent, dpt(int(x),int(y)))
         return
 
     def step(self):
@@ -218,7 +284,7 @@ class Model:
         for agent in self.contexts['deer'].agents(Deer.TYPE):
             log.debug(f'Working with agent {self.rank}:{agent.id}')
             #For each DEER agent do something:
-            location = model.space.get_location(agent)
+            location = model.shared_space.get_location(agent)
             next_x,next_y = agent.step(location, self.tick_time)
             self.move_agent(agent, next_x, next_y)
     
@@ -229,20 +295,37 @@ class Model:
         log.debug(f'Logging metrics...') 
         num_agents = self.contexts['deer'].size([Deer.TYPE])
 
-        if tick % 10 == 0:
+        if tick % 24 == 0: #Log once per day/24 ticks
             log.info(f"  - Tick: {tick}: Agent count: {num_agents}")
             log.info(f"  - Timestamp: {self.tick_time.isoformat()}")
 
         for agent in self.contexts['deer'].agents():
-            location = model.space.get_location(agent)
-            # Scale location back to a normal projection. 
-            # Table: ['tick', 'agent_id', 'agent_uid_rank', 'x', 'y', 'state']
+            cont_location = model.shared_space.get_location(agent)
+            # cont_location = model.shared_space.get_location(agent)
+            grid_location = model.grid.get_location(agent) 
+            if grid_location is not None:
+                canopy_cover = model.canopy_layer.get(grid_location).item()
+            else:
+                canopy_cover = -1
+
+            if cont_location is not None:
+                x = cont_location.x  # There is a small offset between raster values and agent locations shown in QGIS
+                y = cont_location.y  
+            else:
+                x = -1
+                y = -1
+
+            # Scale location back to a 5070 projection.  
+            x_proj = x*self.xy_resolution[0] + int(self.image_bounds.left)
+            y_proj = int(self.image_bounds.top) - y*self.xy_resolution[1]
+
             self.agent_logger.log_row(tick, 
                                       agent.id, 
                                       agent.uid_rank,
                                       self.tick_time.isoformat(),
-                                      location.x,
-                                      location.y,
+                                      x_proj,
+                                      y_proj,
+                                      canopy_cover,
                                       agent.behaviour_state)
 
         self.agent_logger.write()

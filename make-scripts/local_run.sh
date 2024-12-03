@@ -7,10 +7,6 @@ echo "=============================="
 echo "== Running Repast Script... =="
 echo "==============================" 
 
-# echo "Setting up Slurm..."
-# salloc -p normal -q normal -n 1 --ntasks-per-node=24 --mem=50GB
-
-# echo "Running repast4py script on Hopper..."
-# cd ./repast4py 
-
-# singularity run --nv /containers/hopper/UserContainers/$USER/repast4py_latest.sif mpirun -n 4 python rndwalk.py random_walk.yaml
+echo "Running repast4py script in local docker env..." 
+# echo $PWD
+docker run -it --rm --name repast-local-docker -v "$PWD":/usr/src/myapp -w /usr/src/myapp repast-local-docker mpirun -n 2 python ./repast4py/deer_model.py ./config/local_deer_config.yaml

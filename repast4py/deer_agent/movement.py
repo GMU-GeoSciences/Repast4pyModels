@@ -127,7 +127,7 @@ class Movement:
         When given a distance and angle calculate the X and Y coords of it
         when starting from a current position. 
         '''
-        step_distance = self.calculate_random_step()
+        step_distance = self.calculate_random_step()/30.0 #TODO: REMOVE THIS SCALING VAR!
         step_angle = self.calculate_random_turn()
         self.pos.step(step_distance, step_angle)
         next_position = self.pos.current_point
