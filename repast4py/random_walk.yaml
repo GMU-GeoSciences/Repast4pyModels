@@ -1,5 +1,5 @@
-stop.at: 30
-walker.count: 30
-input_agents: 'input/input_agents.csv'
+stop.at: 300
+walker.count: 100
+input_agents: 'input/input_agents_ffx.csv'
 input_buildings: 'input/input_buildings_ffx.csv'
 agent_log_file: 'output/agent_log.csv'
