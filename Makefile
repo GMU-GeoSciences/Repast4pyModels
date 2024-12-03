@@ -4,7 +4,8 @@
 # a dev environment or the Hopper cluster at GMU.
 
 HOST=$(shell hostname) #Get name of machine where this is running
-HPC_NAME=hopper1.orc.gmu.edu 
+#HPC_NAME=hopper1.orc.gmu.edu 
+HPC_NAME=hop-amd-2.orc.gmu.edu 
 
 # Setup environment based on hostname. Checks if .build file exists
 # before rebuilding
@@ -39,9 +40,9 @@ endif
 
 all:
 ifeq ($(HOST), $(HPC_NAME))
-	@echo Running on HPC.
+	@echo Running on HPC!
 else ifeq ($(HOST), rorybox)
 	@echo Running on Rory\'s Laptop
 else
-	@echo Running on $(HOST)
+	@echo Running on unknwon machine: $(HOST)
 endif
