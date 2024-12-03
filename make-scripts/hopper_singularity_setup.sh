@@ -16,10 +16,6 @@ cd /containers/hopper/UserContainers/$USER
 
 singularity build repast4py_latest.sif docker:ghcr.io/gmu-geosciences/repast4py-container:latest
 
-# echo "Cloning project from git..."
-# cd ~
-# git clone https://github.com/heykuldip/Repast4pyModels.git
-
 echo "============================="
 echo "== Environment ready to go =="
 echo "============================="

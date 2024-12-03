@@ -7,10 +7,8 @@ echo "=============================="
 echo "== Running Repast Script... =="
 echo "==============================" 
 
+singularity run --nv /containers/hopper/UserContainers/$USER/repast4py_latest.sif mpirun -n 4 python ./repast4py/deer_model.py ./config/local_deer_config.yaml
+
+# This might need to happen in the run portion...
 echo "Setting up Slurm..."
 salloc -p normal -q normal -n 1 --ntasks-per-node=24 --mem=50GB
-
-echo "Running repast4py script on Hopper..."
-cd ./repast4py 
-
-singularity run --nv /containers/hopper/UserContainers/$USER/repast4py_latest.sif mpirun -n 4 python ./repast4py/deer_model.py ./repast4py/deer_config.yaml

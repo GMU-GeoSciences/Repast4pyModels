@@ -11,4 +11,4 @@ echo "TODO: Deleting singularity image..."
 # docker rmi $(docker images repast-test)
 
 echo "Deleting raster images..."
-rm ./input/images/*.tiff
+# rm ./input/images/*.tiff
