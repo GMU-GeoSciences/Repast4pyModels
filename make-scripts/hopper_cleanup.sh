@@ -5,9 +5,10 @@ echo "== Cleaning up files...     =="
 echo "==============================" 
 
 echo "Deleting log files..." 
-rm ./output/*.csv
+rm -i ./output/*.csv
 
-echo "TODO: Deleting singularity image..." 
+echo "Deleting singularity image..." 
+rm -i /containers/hopper/UserContainers/$USER/repast4py_latest.sif
 # docker rmi $(docker images repast-test)
 
 # echo "Deleting raster images..."

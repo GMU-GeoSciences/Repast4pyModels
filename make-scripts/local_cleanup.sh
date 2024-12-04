@@ -8,10 +8,10 @@ echo "== Cleaning up files...     =="
 echo "==============================" 
 
 echo "Deleting log files..." 
-rm ./output/*.csv
+rm -i ./output/*.csv
 
 echo "Deleting docker image..." 
 docker rmi $(docker images -q repast-local-docker)
 
-# echo "Deleting raster images..."
-# rm ./input/images/*.tiff
+echo "Deleting raster images..."
+rm -i ./input/images/*.tiff
