@@ -6,14 +6,15 @@ DEV_NAME=$(shell ./make-scripts/where_am_i.sh)
 
 env:
 ifeq ($(DEV_NAME), hopper)
-	@echo ===========================
-	@echo Running in HPC environment!
-	@echo ===========================
+	@echo =================================
+	@echo == Running in HPC environment! ==
+	@echo =================================
  
 else ifeq ($(DEV_NAME), dev)
-	@echo ===========================
-	@echo Running in dev environment!
-	@echo ===========================
+	@echo =================================
+	@echo == Running in dev environment! ==
+	@echo =================================
+	
 else
 	@echo Running on unknown machine: $(DEV_NAME)
 endif

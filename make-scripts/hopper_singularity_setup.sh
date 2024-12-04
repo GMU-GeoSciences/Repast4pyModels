@@ -13,9 +13,11 @@ module load openmpi4
 
 echo "Building Singularity Container..."
 cd /containers/hopper/UserContainers/$USER
-
 singularity build repast4py_latest.sif docker:ghcr.io/gmu-geosciences/repast4py-container:latest
 
 echo "============================="
 echo "== Environment ready to go =="
 echo "============================="
+
+echo "Setting up Slurm..."
+salloc -p normal -q normal -n 1 --ntasks-per-node=24 --mem=50GB
