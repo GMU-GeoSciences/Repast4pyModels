@@ -22,7 +22,7 @@ endif
 # before rebuilding
 build: env
 ifeq ($(DEV_NAME), hopper)
-	./make-scripts/hopper_singularity_setup
+	./make-scripts/hopper_singularity_setup.sh
 else
 	./make-scripts/local_setup.sh
 endif
