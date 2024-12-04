@@ -8,8 +8,7 @@ echo "== Setting up Slurm env... =="
 echo "============================="
 
 echo "Loading modules..."
-module load singularity
-module load openmpi4
+module load gnu10 openmpi  git singularity
 
 echo "Building Singularity Container..."
 cd /containers/hopper/UserContainers/$USER

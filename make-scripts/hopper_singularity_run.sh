@@ -7,4 +7,5 @@ echo "=============================="
 echo "== Running Repast Model...  =="
 echo "==============================" 
 echo "Running Singularity container..."
-singularity run --nv /containers/hopper/UserContainers/$USER/repast4py_latest.sif mpirun -n 4 python ./repast4py/deer_model.py ./config/local_deer_config.yaml
+# singularity run --nv /containers/hopper/UserContainers/$USER/repast4py_latest.sif mpirun -n 4 python ./repast4py/deer_model.py ./config/local_deer_config.yaml
+singularity run -B ${PWD}:/host_pwd --pwd /host_pwd /containers/hopper/UserContainers/$USER/repast4py_latest.sif mpirun -n 4 python ./repast4py/deer_model.py ./config/local_deer_config.yaml
