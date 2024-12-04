@@ -3,18 +3,12 @@ sim:
 
 geo: 
   # Envelope for grid/continuous space for the simulation. Must be integers
-  # Dummy bounding box for Fairfax in EPSG 5070  
-
-  x_min: 1603796
-  x_max: 1607728
-  y_min: 1964280
-  y_max: 1967004
-
-
-  # x_min: 1603849
-  # x_max: 1637294
-  # y_min: 1950179
-  # y_max: 1973346
+  # Also the path to the geotiff to use.
+  x_min: 1615000
+  x_max: 1630000
+  y_min: 1960000
+  y_max: 1970000
+  tiff_path: ./input/images/2019_CONUS_Canopy.tiff #in relation to project root dir
   buffer_size: 20 # max number of pixels that an agent can move in a single tick
 
 time: 
