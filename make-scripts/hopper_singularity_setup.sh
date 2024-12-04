@@ -9,7 +9,7 @@ echo "============================="
 
 echo "Loading modules..."
 module load singularity
-module load openmpi
+module load openmpi4
 
 echo "Building Singularity Container..."
 cd /containers/hopper/UserContainers/$USER
