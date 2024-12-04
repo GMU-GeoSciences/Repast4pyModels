@@ -2,47 +2,56 @@
 #####################################
 # This is to quickly test and start sims on either
 # a dev environment or the Hopper cluster at GMU.
+DEV_NAME=$(shell ./make-scripts/where_am_i.sh)
 
-HOST=$(shell hostname) #Get name of machine where this is running
-#HPC_NAME=hopper1.orc.gmu.edu 
-HPC_NAME=hop-amd-2.orc.gmu.edu 
+env:
+ifeq ($(DEV_NAME), hopper)
+	@echo ===========================
+	@echo Running in HPC environment!
+	@echo ===========================
+ 
+else ifeq ($(DEV_NAME), dev)
+	@echo ===========================
+	@echo Running in dev environment!
+	@echo ===========================
+else
+	@echo Running on unknown machine: $(DEV_NAME)
+endif
 
 # Setup environment based on hostname. Checks if .build file exists
 # before rebuilding
-build: 
-ifeq ($(HOST), $(HPC_NAME))
-	./make-scripts/hopper_singularity_setup.sh
+build: env
+ifeq ($(DEV_NAME), hopper)
+	./make-scripts/hopper_singularity_setup
 else
 	./make-scripts/local_setup.sh
 endif
 	touch build
 
 # Run Deer model based on hostname
-deer_run: build 
-ifeq ($(HOST), $(HPC_NAME))
+deer_run: env build
+ifeq ($(DEV_NAME), hopper)
 	./make-scripts/hopper_singularity_run.sh
 else
 	./make-scripts/local_run.sh
 endif
 
 # Run a benchmark using a specific config file
-benchmark: build
+benchmark: env build
 #TODO: Write benchmark script + config file
+ifeq ($(DEV_NAME), hopper)
+	./make-scripts/hopper_benchmark.sh
+else
+	./make-scripts/local_benchmark.sh
+endif
+	rm build
 
 # Clean up everything; remove docker image, remove raster files
-clean:
-ifeq ($(HOST), $(HPC_NAME))
+clean: env
+ifeq ($(DEV_NAME), hopper)
 	./make-scripts/hopper_cleanup.sh
 else
 	./make-scripts/local_cleanup.sh
 endif
 	rm build
 
-all:
-ifeq ($(HOST), $(HPC_NAME))
-	@echo Running on HPC!
-else ifeq ($(HOST), rorybox)
-	@echo Running on Rory\'s Laptop
-else
-	@echo Running on unknwon machine: $(HOST)
-endif

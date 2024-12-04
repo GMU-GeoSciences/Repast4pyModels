@@ -10,5 +10,5 @@ rm ./output/*.csv
 echo "TODO: Deleting singularity image..." 
 # docker rmi $(docker images repast-test)
 
-echo "Deleting raster images..."
+# echo "Deleting raster images..."
 # rm ./input/images/*.tiff

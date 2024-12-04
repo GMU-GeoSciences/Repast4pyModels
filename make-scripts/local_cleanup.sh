@@ -11,10 +11,7 @@ echo "Deleting log files..."
 rm ./output/*.csv
 
 echo "Deleting docker image..." 
-docker rmi $(docker images repast-local-docker)
-
-echo "Deleting makefiles..."
-rm ./build
+docker rmi $(docker images -q repast-local-docker)
 
 # echo "Deleting raster images..."
 # rm ./input/images/*.tiff
