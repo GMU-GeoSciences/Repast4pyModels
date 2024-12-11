@@ -21,7 +21,7 @@ logging:
   agent_log_file: 'output/01_benchmark.csv'
  
 deer:
-  pop_size: 1000 # Number of deer agents to simulate
+  pop_size: 10000 # Number of deer agents to simulate
   disease_starting_ratio: 0 # What ratio of deer start sim being sick.
   input_agents: 'input/deer_agents.parq' # Starting params for each deer agent.
  

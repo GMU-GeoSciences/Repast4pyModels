@@ -32,7 +32,7 @@ endif
 # Run Deer model based on hostname
 deer_run: env build
 ifeq ($(DEV_NAME), hopper)
-	./make-scripts/hopper_singularity_run.sh
+	sbatch ./make-scripts/slurm_scripts/singularity_run.slurm
 else
 	./make-scripts/local_run.sh
 endif
