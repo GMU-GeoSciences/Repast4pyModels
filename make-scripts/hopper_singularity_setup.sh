@@ -7,8 +7,11 @@ echo "============================="
 echo "== Setting up Slurm env... =="
 echo "============================="
 
-echo "Loading modules..."
-module load gnu10 openmpi git singularity
+echo "Loading modules..." 
+module load gnu9 intel mpich git singularity
+
+echo "Current Singularity containers:"
+ls -lah /containers/hopper/UserContainers/$USER/
 
 echo "Building Singularity Container..."
 singularity build repast4py_latest.sif docker:ghcr.io/gmu-geosciences/repast4py-container:latest
@@ -16,5 +19,3 @@ singularity build repast4py_latest.sif docker:ghcr.io/gmu-geosciences/repast4py-
 echo "============================="
 echo "== Environment ready to go =="
 echo "============================="
-# echo "Setting up Slurm..."
-# salloc -p normal -q normal -n 1 --ntasks-per-node=24 --mem=50GB
