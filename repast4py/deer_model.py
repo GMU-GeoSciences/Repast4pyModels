@@ -106,7 +106,7 @@ class Model:
         self.params = params
         self.comm = comm
         self.rank = self.comm.Get_rank()
-        self.contexts["deer"] = context.SharedContext(comm) # https://repast.github.io/repast4py.site/guide/user_guide.html#_contexts_and_projections
+        self.contexts['deer'] = context.SharedContext(comm) # https://repast.github.io/repast4py.site/guide/user_guide.html#_contexts_and_projections
         self.runner = schedule.init_schedule_runner(comm)
         self.runner.schedule_repeating_event(1, 1, self.step)  
 
@@ -180,7 +180,7 @@ class Model:
                                     0, 
                                     0) # Canopy_array returned as (y,x,z) >> (rows, columns, bands) of geotiff
         log.info(f'Total Projection bounds: {projection_bounds}')
-
+        # https://repast.github.io/repast4py.site/apidoc/source/repast4py.value_layer.html#repast4py.value_layer.SharedValueLayer
         self.canopy_layer = SharedValueLayer(comm = self.comm, 
                                         bounds = projection_bounds, 
                                         borders = space.BorderType.Sticky, 
