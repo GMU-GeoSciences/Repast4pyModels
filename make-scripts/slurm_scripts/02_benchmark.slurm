@@ -1,15 +1,13 @@
 #!/bin/bash
 
-#Submit this script with: sbatch singularity_run.slurm
-
-#SBATCH --job-name=deer_model   ##name that will show up in the queue
+#SBATCH --job-name=benchmark02   ##name that will show up in the queue
 #SBATCH --output=/scratch/%u/%x-%N-%j.out   ##filename of the output
 #SBATCH --error=/scratch/%u/%x-%N-%j.err   ##filename of the error output
 #SBATCH --nodes=8  ##number of nodes to use
-#SBATCH --ntasks=16  ##number of tasks to run
+#SBATCH --ntasks=8  ##number of tasks to run
 #SBATCH --time=0-1:00:00  ##time for analysis (day-hour:min:sec)
 #SBATCH --cpus-per-task=2  ##the number of threads the code will use
-#SBATCH --mem=10GB  ##memory allocation per node
+#SBATCH --mem=2GB  ##memory allocation per node
 #SBATCH --partition normal  ##the partition to run in
 #SBATCH --mail-user rmeyer6@gmu.edu  ##your email address
 #SBATCH --mail-type BEGIN  ##slurm will email you when your job starts
