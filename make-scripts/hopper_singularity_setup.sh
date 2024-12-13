@@ -7,6 +7,9 @@ echo "============================="
 echo "== Setting up Slurm env... =="
 echo "============================="
 
+echo "Loading modules..." 
+module load gnu9 intel mpich git singularity
+
 echo "Current Singularity containers:"
 ls -lah /containers/hopper/UserContainers/$USER/
 
