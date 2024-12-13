@@ -41,7 +41,7 @@ endif
 benchmark: env build
 #TODO: Write benchmark script + config file
 ifeq ($(DEV_NAME), hopper)
-	./make-scripts/hopper_benchmark.sh
+	./make-scripts/hopper_singularity_benchmark.sh
 else
 	./make-scripts/local_benchmark.sh
 endif
