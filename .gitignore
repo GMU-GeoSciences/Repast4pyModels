@@ -1,4 +1,11 @@
 */__MACOSX/
 .DS_Store
-*/__pycache__
+*/__pycache__/*
 */.ipynb_checkpoints
+output/*
+.ipynb_checkpoints/
+build
+docs/deerlandscapedisease/
+docs/history.txt
+repast4py/deer_agent/__pycache__/
+repast4py/landscape/__pycache__/

@@ -6,7 +6,7 @@
 #SBATCH --nodes=8  ##number of nodes to use
 #SBATCH --ntasks=8  ##number of tasks to run
 #SBATCH --time=0-1:00:00  ##time for analysis (day-hour:min:sec)
-#SBATCH --cpus-per-task=2  ##the number of threads the code will use
+#SBATCH --cpus-per-task=1  ##the number of threads the code will use
 #SBATCH --mem=2GB  ##memory allocation per node
 #SBATCH --partition normal  ##the partition to run in
 #SBATCH --mail-user rmeyer6@gmu.edu  ##your email address
