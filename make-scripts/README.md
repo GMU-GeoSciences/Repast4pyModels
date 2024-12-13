@@ -1,45 +1,11 @@
-# Repast4pyModels
+# Scripts
 
-This is a repository containing scripts to setup the Repast4py environment in GMU's Hopper high performance cluster. The goal being to run several distributed agent based models.
+This subfolder holds scripts to run the models using various tools:
 
-## Sub Project: Deer Covid modelling
+- Docker: This is for testing and running in a dev environment
+- [Singularity](https://wiki.orc.gmu.edu/mkdocs/Containerized_jobs_on_Hopper/): This is for running containerised apps in a HPC environment where Docker is not appropriate.
+- Slurm Scheduler: This is for when you would like to provision and queue a job in the HPC environment, and receive updates on the progress of the job.
 
-Covid-19 has been detected in a local deer population. This project aims to combine deer behaviour models and human population models in order to run scenarios of human <> deer infections.
+The scripts are called by the Makefile in the root directory of this project. The makefile calls the scripts based on whether or not the hostname of the machine is recognised as one of those of the HPC cluster. There might be some of those that are missing...
 
-## Quick Start
-
-This guide is for GMU members who have access to the Slurm/Hopper cluster.
-
-Here's how you run this on Hopper:
-
-- [Log into Hopper](https://wiki.orc.gmu.edu/mkdocs/Logging_Into_Hopper/)
-- Load Git module, pull repo, and run env code:
-
-```bash
-module load git
-git clone https://github.com/GMU-GeoSciences/Repast4pyModels.git 
-cd Repast4pyModels
-make build
-make deer_run
-```
-
-## How to Contribute
-
-Here's how you contribute to this project:
-
-- Create a branch
-- Add some code
-- Request that your branch get merged into main
-
-## Containers
-
-Hopper can use singularity containers to run code. It also looks like it's not too difficult to convert Docker containers to Singularity containers. The best place to start seems to be with a Nvidia GPU optimised container and add code to there (even if you're not going to use the GPU)
-
-- [Hopper Singularity README](https://wiki.orc.gmu.edu/mkdocs/Containerized_jobs_on_Hopper/)
-- [Nvidia Python Containers](https://catalog.ngc.nvidia.com/orgs/nvidia/teams/distroless/containers/python/tags)
-- [NASA guide on converting Docker > Singularity](https://www.nas.nasa.gov/hecc/support/kb/converting-docker-images-to-singularity-for-use-on-pleiades_643.html)
-
-## Additional Reading
-
-[Makefile tutorial](https://makefiletutorial.com/#the-essence-of-make)
-[Deer Landscape Disease Model](https://www.researchgate.net/publication/363077733_The_effect_of_landscape_transmission_mode_and_social_behavior_on_disease_transmission_Simulating_the_transmission_of_chronic_wasting_disease_in_white-tailed_deer_Odocoileus_virginianus_populations_usi)
+The Slurm scripts were generated using[ this tool.](https://wiki.orc.gmu.edu/mkdocs/slurm_generator/slurm_script_generator.html)
