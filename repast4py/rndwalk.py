@@ -18,9 +18,11 @@ class Walker(core.Agent):
 
     TYPE = 0
 
-    def __init__(self, local_id: int, rank: int, pt: dpt):
+    def __init__(self, local_id: int, rank: int, pt: dpt, home_id: int, work_id: int):
         super().__init__(id=local_id, type=Walker.TYPE, rank=rank)
         self.pt = pt
+        self.home_id = home_id
+        self.work_id = work_id
 
     def save(self) -> Tuple:
         """Saves the state of this Walker as a Tuple.
@@ -28,7 +30,7 @@ class Walker(core.Agent):
         Returns:
             The saved state of this Walker.
         """
-        return (self.uid, self.pt.coordinates)
+        return (self.uid, self.pt.coordinates, self.home_id, self.work_id)
     
     def walk(self, grid, model):
 
@@ -52,12 +54,14 @@ def restore_walker(walker_data: Tuple):
     # uid is a 3 element tuple: 0 is id, 1 is type, 2 is rank
     uid = walker_data[0]
     pt_array = walker_data[1]
+    home_id = walker_data[2]
+    work_id = walker_data[3]
     pt = dpt(pt_array[0], pt_array[1], 0)
 
     if uid in walker_cache:
         walker = walker_cache[uid]
     else:
-        walker = Walker(uid[0], uid[2], pt)
+        walker = Walker(uid[0], uid[2], pt, home_id, work_id)
         walker_cache[uid] = walker
 
     walker.pt = pt
@@ -100,20 +104,23 @@ class Model:
         rng = repast4py.random.default_rng
         
         building_ids = list(self.dbuildings.keys())
-        
-        for i in range(params['walker.count']):
-            # get a random x,y location of a building in the grid
-            building_to_go = random.default_rng.choice(building_ids)
-            pt = dpt(self.dbuildings[building_to_go]["pos"][0],
-                     self.dbuildings[building_to_go]["pos"][1],
-                     0)
-            # create and add the walker to the context
-            walker = Walker(i, rank, pt)
-            self.context.add(walker)
-            self.grid.move(walker, pt)
 
+        with open(params['input_agents']) as file:
+            next(file)
+            for i in range(params['walker.count']):                 # count has to be <= agents in the input file
+                line = file.readline()
+                agent_id, home_id, work_id = line.split(',')
+                building_to_go = int(home_id)
+                pt = dpt(self.dbuildings[building_to_go]["pos"][0],
+                        self.dbuildings[building_to_go]["pos"][1],
+                        0)
+                # create and add the walker to the context
+                walker = Walker(int(agent_id), rank, pt, int(home_id), int(work_id))
+                self.context.add(walker)
+                self.grid.move(walker, pt)                
+        
         # Schedule
-        sim_start_str = '07/01/24 08:00:00'
+        sim_start_str = '07/01/24 00:00:00'
         work_start_str = '09:00:00'
         work_end_str = '17:00:00'
         self.tick_duration = 5               # minutes
@@ -130,7 +137,6 @@ class Model:
             self.go_to_place()
         if(self.current_time.time() == self.work_end):
             print('Time: ', self.current_time.time(), '  Going home!')            
-            print("Going home!")
             self.go_to_place()
 
         tick = self.runner.schedule.tick

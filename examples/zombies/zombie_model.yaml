@@ -1,0 +1,8 @@
+random.seed: 42
+stop.at: 5000.0
+human.count: 10000
+zombie.count: 10
+world.width: 500
+world.height: 500
+run.number: 1
+counts_file: './output/agent_counts.csv'

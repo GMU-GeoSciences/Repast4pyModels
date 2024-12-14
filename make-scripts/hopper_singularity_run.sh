@@ -1,16 +1,10 @@
 #!/bin/bash
-# This is to setup the Hopper environment in order to run the repast models
-# It's a bit of a chicken/egg situation since you have to load git first
-# in order to get this script in order to load git...
+# This is the WRONG way to do it. This should be rin by a slurm script.
+# This currently runs on the head node, which is bad. In interactive mode
+# it should be run by a salloc kinda thing...
 
 echo "=============================="
-echo "== Running Repast Script... =="
+echo "== Running Repast Model...  =="
 echo "==============================" 
-
-echo "Setting up Slurm..."
-salloc -p normal -q normal -n 1 --ntasks-per-node=24 --mem=50GB
-
-echo "Running repast4py script on Hopper..."
-cd ./repast4py 
-
-singularity run --nv /containers/hopper/UserContainers/$USER/repast4py_latest.sif mpirun -n 4 python ./repast4py/deer_model.py ./repast4py/deer_config.yaml
+echo "Running Singularity container..."
+sbatch ./make-scripts/slurm_scripts/singularity_run.slurm

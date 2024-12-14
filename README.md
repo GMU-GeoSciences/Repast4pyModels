@@ -8,8 +8,20 @@ Covid-19 has been detected in a local deer population. This project aims to comb
 
 ## Quick Start
 
+### Local Machine
+This is when you want to run this on your local machine, to test or develop further.
+
+```bash
+git clone https://github.com/GMU-GeoSciences/Repast4pyModels.git 
+cd Repast4pyModels
+make build
+make deer_run
+```
+
+
 This guide is for GMU members who have access to the Slurm/Hopper cluster.
 
+### HPC Cluster
 Here's how you run this on Hopper:
 
 - [Log into Hopper](https://wiki.orc.gmu.edu/mkdocs/Logging_Into_Hopper/)
@@ -22,6 +34,16 @@ cd Repast4pyModels
 make build
 make deer_run
 ```
+
+## Other ReadMe's
+There are additional readme's in this repo to futher explain the code and it's functionality.
+
+- [Config](./config/README.md)
+- [MakeFiles](./make-scripts/README.md)
+- [Notebooks](./Notebooks/README.md)
+- [Input Files](./input/README.md)
+- [Repast Models](./repast4py/README.md)
+
 
 ## How to Contribute
 
