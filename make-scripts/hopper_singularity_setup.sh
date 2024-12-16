@@ -14,8 +14,8 @@ echo "Current Singularity containers:"
 ls -lah /containers/hopper/UserContainers/$USER/
 
 echo "Building Singularity Container..."
-singularity build repast4py_latest.sif docker:ghcr.io/gmu-geosciences/repast4py-container:latest
-cp repast4py_latest.sif /containers/hopper/UserContainers/$USER/.
+singularity build /containers/hopper/UserContainers/$USER/repast4py_latest.sif docker:ghcr.io/gmu-geosciences/repast4py-container:latest
+# cp repast4py_latest.sif /containers/hopper/UserContainers/$USER/.
 
 echo "============================="
 echo "== Environment ready to go =="
