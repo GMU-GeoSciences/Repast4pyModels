@@ -14,14 +14,14 @@ geo:
 time: 
   start_time: "2000-01-01T00:00:00" #ISO 8601 Timestamp
   hours_per_tick: 1
-  end_tick: 4000
+  end_tick: 40
  
 logging:
-  loglevel: WARNING # can be DEBUG, INFO, WARNING, ERROR
+  loglevel: INFO # can be DEBUG, INFO, WARNING, ERROR
   agent_log_file: 'output/01_benchmark.csv'
  
 deer:
-  pop_size: 100000 # Number of deer agents to simulate
+  pop_size: 100 # Number of deer agents to simulate
   disease_starting_ratio: 0 # What ratio of deer start sim being sick.
   input_agents: 'input/deer_agents.parq' # Starting params for each deer agent.
  
