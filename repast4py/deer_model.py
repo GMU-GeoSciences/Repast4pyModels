@@ -23,7 +23,7 @@ from datetime import datetime, timedelta
 
 # Local Files
 from deer_agent.deer_agent import Deer, Deer_Config
-from landscape import fetch_img 
+from landscape import fetch_img, landscape
 
 # model = None
 agent_tuple_cache = {}
@@ -83,7 +83,11 @@ class Metrics:
     tick_timestamp: str = datetime.fromtimestamp(0).isoformat()
     agent_location_x: float = 0
     agent_location_y: float = 0
+    agent_centroid_x: float = 0
+    agent_centroid_y: float = 0
     canopy_cover: float = 0
+    suitable: str = ''
+    local_agents: str = ''
     agent_behaviour_state: int = 0
 
 class Model:
@@ -125,7 +129,14 @@ class Model:
         self.metrics = Metrics()
         self.agent_logger = logging.TabularLogger(comm, 
                                                   self.params.get('logging',{}).get('agent_log_file'), 
-                                                  ['tick', 'agent_id', 'agent_uid_rank', 'timestamp', 'x', 'y', 'canopy', 'state'])
+                                                  ['tick', 
+                                                   'agent_id', 
+                                                   'agent_uid_rank', 
+                                                   'timestamp', 
+                                                   'x', 'y', 
+                                                   'centroid_x', 'centroid_y', 
+                                                   'Canopy', 'Suitable','Nearby Agents', 
+                                                   'State'])
 
         
         # Initialise agents
@@ -167,7 +178,7 @@ class Model:
 
         # xy_resolution and image_bounds are going to get overloaded if multiple rasters are ingested from different sources
         # Either stick to a single source, a single raster, or figure this out...
-        canopy_array, self.xy_resolution, self.image_bounds = fetch_img.fetch_img(canopy) 
+        canopy_array, self.xy_resolution, self.image_bounds = fetch_img.fetch_img(canopy)
 
         log.info(f'WCS Array shape: {canopy_array.shape}')
         log.info(f'WCS Image Bounds: {self.image_bounds}')
@@ -247,7 +258,6 @@ class Model:
         deer_cfg = Deer_Config()  
         deer_cfg_object = deer_cfg.rand_factory(x,y,params)
         agent.set_cfg(deer_cfg_object)
-        # agent.
         #################
         log.debug(f'Creating Rank:Agent {self.rank}:{agent.id}.') 
         self.contexts['deer'].add(agent)
@@ -258,7 +268,7 @@ class Model:
         Remove an agent from the sim. 
         '''
         log.debug(f'Removing agent...')
-        self.context.remove(agent)
+        self.contexts['deer'].remove(agent)
         return
 
     def move_agent(self, agent, x, y):
@@ -281,12 +291,26 @@ class Model:
         self.contexts['deer'].synchronize(restore_agent)
 
         log.debug('Looping through agents')
+        dead_agents = []
         for agent in self.contexts['deer'].agents(Deer.TYPE):
             log.debug(f'Working with agent {self.rank}:{agent.id}')
             #For each DEER agent do something:
             location = model.shared_space.get_location(agent)
-            next_x,next_y = agent.step(location, self.tick_time)
+            local_cover, nearby_agents = landscape.get_nearby_items(agent, model, sense_range = 200)
+            agent.check_homerange(local_cover, model.params)                 # Check if this could be a home range, what the angle to the centroid is. 
+            agent.check_age(self.tick_time, model.params)   # Check age of agent. Promote from Fawn to Adult, or go into Dispersal state 
+            agent.check_group()                             # Check parent/fawn/group. 
+            agent.check_disease(self.tick_time)             # Check if infected and results thereof.
+            agent.calculate_next_state()                    # Figure out the next state for this agent
+            next_x, next_y = agent.calculate_next_pos(location.x, location.y, self.tick_time)
+
             self.move_agent(agent, next_x, next_y)
+            
+            if agent.is_dead:
+                dead_agents.append(agent)
+
+        for agent in dead_agents:
+            self.remove_agent(agent)
     
     def log_metrics(self, tick):
         '''
@@ -319,18 +343,30 @@ class Model:
             x_proj = x*self.xy_resolution[0] + int(self.image_bounds.left)
             y_proj = int(self.image_bounds.top) - y*self.xy_resolution[1]
 
+            # Get centroid and projcet it to 5070
+            x_proj_centroid = agent.pos.centroid.x*self.xy_resolution[0] + int(self.image_bounds.left)
+            y_proj_centroid = int(self.image_bounds.top) - agent.pos.centroid.y*self.xy_resolution[1]
+
+            ## Calc local variables
+            local_cover, nearby_agents = landscape.get_nearby_items(agent, model, sense_range=200)
+            suitable = landscape.location_suitability(local_cover, params)
+            nearby_agents_ids = [agent.id for agent in nearby_agents]
+            log.debug(f'Nearby agents: {nearby_agents}')
             self.agent_logger.log_row(tick, 
                                       agent.id, 
                                       agent.uid_rank,
                                       self.tick_time.isoformat(),
                                       x_proj,
                                       y_proj,
+                                      x_proj_centroid,
+                                      y_proj_centroid,
                                       canopy_cover,
+                                      suitable,
+                                      nearby_agents_ids,
                                       agent.behaviour_state)
 
         self.agent_logger.write()
         return
- 
 
 def setup_logging(params):
     '''

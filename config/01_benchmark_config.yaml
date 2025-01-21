@@ -4,7 +4,6 @@ sim:
 geo: 
   # Envelope for grid/continuous space for the simulation. Must be integers
   # Also the path to the geotiff to use.
-
   x_min: 1605000
   x_max: 1635000
   y_min: 1952000

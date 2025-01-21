@@ -3,7 +3,7 @@ FROM ghcr.io/gmu-geosciences/repast4py-container:latest
  
 # Install the python requirements
 COPY ./requirements.txt ./requirements.txt
-RUN pip install -r ./requirements.txt
+RUN pip install --break-system-packages -r ./requirements.txt
   
 # Set the PYTHONPATH to include the /repast4py folder which contains the core folder
 ENV PYTHONPATH=/repast4py/src

@@ -1,12 +1,5 @@
-# Don't need to avoid adding anything to the docker build env yet...
-*/__MACOSX/
-.DS_Store
-./Docs/*
-./Docs/
-./building_assignment_input_files/*
-./buildings_assignment_input_files
-./git/*
-./git
-./Notebooks/*
-./ipynb_check
-./output/*
+# Ignore everything
+*
+# except 
+!requirements.txt
+!repast4py

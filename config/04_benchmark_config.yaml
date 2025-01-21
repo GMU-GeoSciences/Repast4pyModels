@@ -18,7 +18,7 @@ time:
  
 logging:
   loglevel: INFO # can be DEBUG, INFO, WARNING, ERROR
-  agent_log_file: 'output/01_benchmark.csv'
+  agent_log_file: 'output/04_benchmark.csv'
  
 deer:
   pop_size: 100 # Number of deer agents to simulate

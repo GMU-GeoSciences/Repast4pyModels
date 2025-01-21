@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --job-name=benchmark01   ##name that will show up in the queue
+#SBATCH --job-name=benchmark02   ##name that will show up in the queue
 #SBATCH --output=/scratch/%u/%x-%N-%j.out   ##filename of the output
 #SBATCH --error=/scratch/%u/%x-%N-%j.err   ##filename of the error output
 #SBATCH --nodes=2  ##number of nodes to use
@@ -20,4 +20,4 @@ module load gnu9 intel mpich git singularity
 
 
 ## Load modules, insert code, and run your programs here.
-mpirun -n 8 singularity run /containers/hopper/UserContainers/$USER/repast4py_latest.sif python ./repast4py/deer_model.py ./config/02_benchmark_config.yaml
+mpirun -n 24 singularity run /containers/hopper/UserContainers/$USER/repast4py_latest.sif python ./repast4py/deer_model.py ./config/02_benchmark_config.yaml
