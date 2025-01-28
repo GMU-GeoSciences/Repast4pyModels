@@ -7,7 +7,9 @@ import datetime
 import numpy as np
 
 import logging as pylog # Repast logger is called as "logging" 
- 
+
+from . import behaviour
+
 log = pylog.getLogger(__name__)
 
 '''
@@ -48,9 +50,9 @@ def is_season(timestamp, deer_season):
                                     month = deer_season.end_month,
                                     day = deer_season.end_day)
     
-    return start_date < timestamp < end_date
+    return start_date < date_stamp < end_date
 
-def check_age(input_datetime, agent, params):
+def check_age(agent, params):
     '''
     Use step-time to calculate agent age and the the effects of this:
         - Fawns growing up
@@ -59,18 +61,21 @@ def check_age(input_datetime, agent, params):
 
     Check what time of year it is:
     '''
-    agent.age = input_datetime - agent.birth_date
+    agent.age = agent.timestamp - agent.birth_date
     fawn_to_adult = int(params['deer_control_vars']['age']['fawn_to_adult'])
     max_age = int(params['deer_control_vars']['age']['adult_max'])
 
-    if agent.is_fawn and agent.age > fawn_to_adult:
+    if agent.is_fawn and agent.age > datetime.timedelta(days=fawn_to_adult):
         log.debug('Fawn grows up!')
-        agent.is_fawn = False
+        behaviour.grow_up(agent, params)
 
     if agent.age > datetime.timedelta(days=max_age):
         log.debug('Deer is too old!')
         agent.is_dead = True
 
+    # TODO: Check Annual Mortality
+    # params['deer_control_vars']['annual_mortality']['female']
+    
     return agent
 
 def check_time_of_year(input_datetime):
@@ -86,3 +91,12 @@ def check_time_of_year(input_datetime):
             time_of_year = None
 
     return time_of_year
+
+def increment_timers(agent):
+    '''
+    Increment all the timers once per step.
+    '''
+    agent.disease_timer += 1
+    agent.gestation_timer += 1
+    agent.behaviour_timer += 1
+    agent.behaviour_max_timer += 1

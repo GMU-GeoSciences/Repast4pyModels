@@ -2,12 +2,13 @@ import random as rndm
 from typing import Tuple 
 from dataclasses import dataclass, field, fields, asdict
 from enum import Enum
+from copy import copy, deepcopy
 
 import datetime
 import numpy as np
 
-import logging as pylog # Repast logger is called as "logging"
-from .movement import Movement, Point, Position_Vector
+import logging as pylog # Repast logger is called as "logging" 
+from . import time_functions
  
 log = pylog.getLogger(__name__)
 
@@ -36,26 +37,12 @@ class Behaviour_State(Enum):
         Exploratory movement lasts between 12-24 hours, the duration being chosen randomly as the 
         behavior starts, before the deer reverts to normal movements and returns to its home range.
         "
-
-        "
-        Both dispersal and exploratory movement are modeled with the same step lengths as normal movement 
-        but with a turn angle distribution concentrated around zero
-        "
     '''
     NORMAL = 1
     DISPERSE = 2
     MATING = 3
     EXPLORE = 4
-
-
-@dataclass() 
-class TimeOfYear_mixin:
-    title: str
-    start_day: int
-    start_month: int
-    end_day: int
-    end_month: int
-
+ 
 def local_suitability():
     '''
     Given local area and nearby agents, decide whether this is a good place to establish
@@ -79,46 +66,143 @@ def check_disease():
     Check if sick, or recovered, and whether other nearby agents are sick.
     '''
 
-
-def calculate_next_state(agent):
+def enter_explore_state(agent):
     '''
-    Based on current state, time, location etc. Calculate the next behavioural state
-    of this agent.
+    when exploring the agent maintains it's centroid, changes it's movement angle params
+    and has a limit on the explore duration:
+
+    "
+     Exploratory movement lasts between 12-24 hours, the duration being 
+     chosen randomly as the behavior starts, before the deer reverts
+     to normal movements and returns to its home range.
+    "
     '''
-    # if 
+    agent.behaviour_state = Behaviour_State.EXPLORE
+    agent.explore_end_datetime = agent.timestamp + datetime.timedelta(hours=rndm.randint(12, 24))
 
+    return agent
 
-
-class TimeOfYear(TimeOfYear_mixin,Enum):
+def enter_normal_state(agent):
     '''
-    - Gestation ( 1 Jan - 14 May)
-    - Fawning   (15 May - 31 Aug)
-    - PreRut    ( 1 Sep - 31 Oct)
-    - Rut       ( 1 Nov - 31 Dec)
+    Normal state... Not much going on.
     '''
-    GESTATION = 'Gestation', 1,1,14,5 
-    FAWNING =   'Fawning',  15,5,31,8 
-    PRERUT =    'PreRut',    1,9,31,10 
-    RUT =       'Rut',       1,11,31,12 
+    agent.behaviour_state = Behaviour_State.NORMAL
+    return agent
 
-# def check_time():
-#     '''
-#     Use step-time to calculate agent age and the the effects of this:
-#         - Fawns growing up
-#         - Old agents dying
-#         - Pregnant females giving birth 
 
-#     Check what time of year it is:
-#     '''
-#     self.age = tick_datetime - self.birth_date
+def enter_disperse_state(agent):
+    '''
+    Disperse! Ignore centroid and leave.
+    '''
+    log.debug(f'DISPERSE! {agent.uuid}')
+    agent.behaviour_state = Behaviour_State.DISPERSE
+    agent.has_homerange = False
+    agent.explore_end_datetime = agent.timestamp + datetime.timedelta(hours=rndm.randint(12, 24))
 
-#     if self.is_fawn and self.age > datetime.timedelta(days=params['deer_control_vars']['age']['fawn_to_adult']):
-#         log.debug('Fawn grows up!')
-#         self.is_fawn = False
+    return agent
 
-#     if self.age > datetime.timedelta(days=params['deer_control_vars']['age']['adult_max']):
-#         log.debug('Deer is too old!')
-#         self.is_dead = True
+def enter_mating_state(agent):
+    '''
+    Mating!
+    '''
+    agent.behaviour_state = Behaviour_State.MATING 
+    return agent
 
-#     time_of_year = 
-#     return
+def establish_homerange(agent):
+    '''
+    This is a good place. Make it home
+    '''
+    log.debug(f'New home range for {agent.uuid}')
+    agent.pos.centroid = copy(agent.pos.current_point)
+    agent.has_homerange = True
+
+    return agent
+
+def grow_up(agent, params):
+    '''
+    Fawn grows up. This causes it to enter disperse (sometimes).
+    '''
+    agent.is_fawn = False
+
+    # male_disperse_prob = params['deer_control_vars']['male_disperse_prob']
+    # female_disperse_prob = params['deer_control_vars']['female_disperse_prob']
+    # if agent.is_male and (rndm.random() < male_disperse_prob):
+    #     agent = enter_disperse_state(agent)
+    # if not(agent.is_male) and (rndm.random() < female_disperse_prob):
+    #     agent = enter_disperse_state(agent)
+    return agent
+
+def location_suitability(local_array, nearby_agents, params):
+    '''
+    Check whether local conditions are good for the deer agent.
+    '''
+    pixel_threshold = float(params['deer_control_vars']['homerange']['suitability_threshold'])
+    min_count = float(params['deer_control_vars']['homerange']['min'])
+    good_pixels = (local_array > pixel_threshold).sum()
+
+    return good_pixels > min_count
+
+
+                    #########################
+                    ## B E H A V I O U R S ##
+                    ######################### 
+def calculate_next_state(agent, local_cover, nearby_agents, params):
+    '''
+    Take current time of day, previous behaviour(s?), and location. 
+    Use these to determine the behaviour of the deer. 
+
+        Seeing as how this step is going to be run billions of times 
+        computational efficiency is important. 
+    '''  
+    # time_of_year = time_functions.check_time_of_year(agent.timestamp)
+    # agent = time_functions.check_age(agent, params) 
+    good_hr = location_suitability(local_cover, nearby_agents, params) 
+
+    ############### NORMAL ############### 
+    if agent.behaviour_state == Behaviour_State.NORMAL:
+        if agent.has_homerange:
+            # sometimes start randomly exploring
+            if not(good_hr):
+                # agent.behaviour_state = Behaviour_State.DISPERSE
+                pass
+        else:
+            # Agent has no homerange, go look for one.
+            # agent.behaviour_state = Behaviour_State.DISPERSE 
+            pass
+        return agent
+    
+    ############### DISPERSE ###############
+    elif agent.behaviour_state == Behaviour_State.DISPERSE:
+        if agent.timestamp > agent.explore_end_datetime:
+            # If Homerange is good stop exploring
+            if good_hr:
+                agent = enter_normal_state(agent)
+                agent = establish_homerange(agent)
+            else: 
+                #Keep exploring a little longer
+                agent = enter_disperse_state(agent)
+        return agent
+    
+    # ############### MATING ###############
+    # elif agent.behaviour_state == Behaviour_State.MATING:
+    #     pass
+    #     return agent
+    
+    # ############### EXPLORE ###############
+    # elif agent.behaviour_state == Behaviour_State.EXPLORE:
+    #     if agent.timestamp > agent.explore_end_datetime:
+    #         if good_hr:
+    #             # Stop exploring
+    #             agent  = enter_normal_state(agent)
+    #         else: 
+    #             agent  = enter_normal_state(agent)
+
+    #     else:
+    #         # Keep Exploring
+    #         pass 
+    #     return agent
+
+    log.warning('Something went wrong with behaviour step...')
+    return agent
+#######################################################################
+#######################################################################

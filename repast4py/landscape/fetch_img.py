@@ -5,6 +5,8 @@ from rasterio.plot import reshape_as_image
 from rasterio.mask import mask
 import os
 import shapely
+# import pandas as pd
+# import geopandas as gpd
 
 import logging as pylog # Repast logger is called as "logging"
 
@@ -75,10 +77,23 @@ def fetch_img(WCS_Info):
     return arr, xy_resolution, image_bounds
 
 
-# def bbox(coord_list):
-#      box = []
-#      for i in (0,1):
-#          res = sorted(coord_list, key=lambda x:x[i])
-#          box.append((res[0][i],res[-1][i]))
-#      ret = f"({box[0][0]} {box[1][0]}, {box[0][1]} {box[1][1]})"
-#      return ret
+def csv_to_gpkg(params):
+    '''
+    Convert the repast csv logfile into a geopackage with 
+    the x,y coords as point geom, and maybe the centroid geom too...
+    '''
+    in_csv = params['logging']['agent_log_file']
+    out_gpkg = params['logging']['gpkg_log_file']
+
+    # Load the CSV file
+    df = pd.read_csv(in_csv)
+
+    # Convert to GeoDataFrame
+    gdf = gpd.GeoDataFrame(
+        df, 
+        geometry=gpd.points_from_xy(df['x'], df['y'])
+    )
+
+    # Save to a GeoPackage file
+    gdf.to_file(out_gpkg, layer='agent_location', driver='GPKG')
+    return

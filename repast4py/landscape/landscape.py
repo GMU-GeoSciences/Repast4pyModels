@@ -55,15 +55,5 @@ def get_nearby_items(agent, model, sense_range = 100):
             
     return local_array, local_agents
 
-def location_suitability(local_array, params):
-    '''
-    Check whether local conditions are good for the deer agent.
-    '''
-    pixel_threshold = float(params['deer_control_vars']['homerange']['suitability_threshold'])
-    min_count = float(params['deer_control_vars']['homerange']['min'])
-    good_pixels = (local_array > pixel_threshold).sum()
-
-    return good_pixels > min_count
-
 
 

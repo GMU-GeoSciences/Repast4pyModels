@@ -9,18 +9,25 @@ from enum import Enum
 
 import datetime
 import numpy as np
+import uuid
 
 import logging as pylog # Repast logger is called as "logging"
-from .movement import Movement, Point, Position_Vector
-from .behaviour import Behaviour_State
+from . import movement
+from . import behaviour
+
 
 log = pylog.getLogger(__name__)
+
+
+def get_new_uuid() -> str:
+    return str(uuid.uuid4())
  
 @dataclass
 class Deer_Config(object):
     '''
     Some basic configuration for a deer agent. 
-    ''' 
+    '''  
+    uuid: str = field(default_factory=get_new_uuid)
     is_infected: bool = False
     is_contagious: bool = False
     has_recovered: bool = False
@@ -30,13 +37,17 @@ class Deer_Config(object):
     birth_date: datetime = datetime.datetime(2020, 1, 1)
     is_male: bool = False
     is_fawn: bool = False
-    gestation_days: int = 0
+    gestation_timer: int = 0
     has_homerange: bool = False # Assume it's false and check that initial pos is valid for centroid
     current_x: float = 0.0 # field(repr=False, default=10)
     current_y: float = 0.0
-    behaviour_state: Behaviour_State = field(default = Behaviour_State.NORMAL) 
+    behaviour_state: behaviour.Behaviour_State = field(default = behaviour.Behaviour_State.DISPERSE) 
+    behaviour_timer: int = 0
+    explore_end_datetime: datetime = datetime.datetime(2020, 1, 2)
     is_dead: bool = False
-    pos: Position_Vector = field(default = Behaviour_State.NORMAL)
+    pos: movement.Position_Vector = field(default = movement.Position_Vector(movement.Point(0, 0),
+                                                                             movement.Point(0, 0),
+                                                                             movement.Point(0, 0)))
     timestamp: datetime.datetime = datetime.datetime.fromisoformat('1970-01-01')
 
     def __post_init__(self):
@@ -44,10 +55,10 @@ class Deer_Config(object):
         Assume the start point of all deer agents
         is also their last/current point and the centroid
         '''
-        last_point = Point(self.current_x,self.current_y)
-        current_point = Point(self.current_x,self.current_y)
-        centroid = Point(self.current_x, self.current_y)
-        self.pos = Position_Vector(last_point, current_point, centroid) 
+        last_point = movement.Point(self.current_x, self.current_y)
+        current_point = movement.Point(self.current_x, self.current_y)
+        centroid = movement.Point(self.current_x, self.current_y)
+        self.pos = movement.Position_Vector(last_point, current_point, centroid) 
     
     @classmethod
     def rand_factory(cls, x, y, params):
@@ -59,6 +70,7 @@ class Deer_Config(object):
         initial_timestamp = datetime.datetime.fromisoformat(params['time']['start_time']) 
 
         return cls(
+            uuid  = get_new_uuid(),
             is_infected   = rndm.random() < params['deer']['disease_starting_ratio'], # Is true if random number below 0.1. Thus ~10% of population will start infected...  
             is_contagious = False, 
             has_recovered = False,
@@ -68,15 +80,17 @@ class Deer_Config(object):
             birth_date = initial_timestamp - datetime.timedelta(days=rndm.randint(1, 2000)),
             is_male = rndm.random() < 0.5,
             is_fawn = rndm.random() < 0.2,
-            gestation_days = 0,
+            gestation_timer = 0,
             has_homerange = False, 
             current_x = initial_x,
             current_y = initial_y,
-            behaviour_state = Behaviour_State.NORMAL, 
+            behaviour_state = behaviour.Behaviour_State.DISPERSE,
+            behaviour_timer = 0,
+            explore_end_datetime = initial_timestamp + datetime.timedelta(hours=rndm.randint(12, 24)),
             is_dead = False,
-            pos = Position_Vector(last_point = Point(initial_x, initial_y),
-                                  current_point = Point(initial_x, initial_y),
-                                  centroid = Point(initial_x, initial_y)),
+            pos = movement.Position_Vector(last_point = movement.Point(initial_x, initial_y),
+                                        current_point = movement.Point(initial_x, initial_y),
+                                             centroid = movement.Point(initial_x, initial_y)),
             timestamp = initial_timestamp,)
 
 def classFromArgs(className, argDict):
@@ -107,8 +121,7 @@ class Deer(core.Agent):
         Set/Get the config variables to/from a dict. This is to avoid the agent restore 
         function having a bunch of tuples.
         '''
- 
-        # Infection Vars:
+        self.uuid = agent_cfg.uuid
         self.is_infected = agent_cfg.is_infected
         self.is_contagious = agent_cfg.is_contagious
         self.has_recovered = agent_cfg.has_recovered
@@ -118,19 +131,20 @@ class Deer(core.Agent):
         self.birth_date = agent_cfg.birth_date
         self.is_male = agent_cfg.is_male
         self.is_fawn = agent_cfg.is_fawn
-        self.gestation_days = agent_cfg.gestation_days
+        self.gestation_timer = agent_cfg.gestation_timer
         self.has_homerange = agent_cfg.has_homerange
         self.current_x = agent_cfg.current_x
         self.current_y = agent_cfg.current_y
         self.behaviour_state = agent_cfg.behaviour_state
+        self.behaviour_timer = agent_cfg.behaviour_timer
+        self.explore_end_datetime = agent_cfg.explore_end_datetime
         self.is_dead = agent_cfg.is_dead
-
         self.pos = agent_cfg.pos
         self.timestamp = agent_cfg.timestamp  
 
     def get_cfg(self):
         agent_cfg = Deer_Config()
-
+        agent_cfg.uuid = self.uuid 
         agent_cfg.is_infected = self.is_infected 
         agent_cfg.is_contagious = self.is_contagious 
         agent_cfg.has_recovered = self.has_recovered  
@@ -140,16 +154,16 @@ class Deer(core.Agent):
         agent_cfg.birth_date = self.birth_date  
         agent_cfg.is_male = self.is_male
         agent_cfg.is_fawn = self.is_fawn  
-        agent_cfg.gestation_days = self.gestation_days  
+        agent_cfg.gestation_timer = self.gestation_timer  
         agent_cfg.has_homerange = self.has_homerange  
         agent_cfg.current_x = self.current_x 
         agent_cfg.current_y = self.current_y 
         agent_cfg.behaviour_state = self.behaviour_state 
+        agent_cfg.behaviour_timer = self.behaviour_timer
+        agent_cfg.explore_end_datetime = self.explore_end_datetime
         agent_cfg.is_dead = self.is_dead
-
         agent_cfg.pos = self.pos
         agent_cfg.timestamp = self.timestamp  
-        
         return agent_cfg
 
     def save(self) -> Tuple:
@@ -165,7 +179,8 @@ class Deer(core.Agent):
              )
 
         Example: ((5, 0, 1), False, 0, (0, 0), 2, 1, 0)
-        """ 
+        """
+        log.debug('Saving agent to move to different rank...')
         cfg = self.get_cfg()
         log.debug(cfg)
         return (self.uid,
@@ -180,7 +195,7 @@ class Deer(core.Agent):
         # TODO: This needs to be more complex
         return
 
-    def calculate_next_pos(self, current_x, current_y, tick_datetime):
+    def calculate_next_pos(self, xy_resolution):
         '''
         Take last known position, home range centroid, and average_speed
         and then calculate the location for the next step. Calculations 
@@ -193,72 +208,9 @@ class Deer(core.Agent):
          computational efficiency is important. 
         ''' 
         # CurrentX/Y should be the same as self.pos.current_point
-        log.debug(f'Pos Vector: {self.pos}')
-        agent_movement = Movement(self.pos, tick_datetime)
-        next_position = agent_movement.step() 
+        log.debug(f'Pos Vector: {self.pos}') 
+        next_position = movement.step(self, xy_resolution) 
         return next_position.x, next_position.y
-    
-    def calculate_next_state(self):
-        '''
-        Take current time of day, previous behaviour(s?), and location. 
-        Use these to determine the behaviour of the deer. 
-
-         Seeing as how this step is going to be run billions of times 
-         computational efficiency is important. 
-        '''
-        # TODO: This needs to be more complex
-        self.behaviour_state = 1
-        self.disease_timer += 1 
-        return
-    
-    def check_age(self, tick_datetime, params):
-        '''
-        Update age from birthdate + tick
-        Check what time of year it is:
-            - Gestation ( 1 Jan - 14 May)
-            - Fawning   (15 May - 31 Aug)
-            - PreRut    ( 1 Sep - 31 Oct)
-            - Rut       ( 1 Nov - 31 Dec)
-        '''
-        self.age = tick_datetime - self.birth_date
-        fawn_to_adult = int(params['deer_control_vars']['age']['fawn_to_adult'])
-        max_age = int(params['deer_control_vars']['age']['adult_max'])
-
-        if self.is_fawn and self.age > datetime.timedelta(days=fawn_to_adult):
-            log.debug('Fawn grows up!')
-            self.is_fawn = False
-
-        if self.age > datetime.timedelta(days=max_age):
-            log.debug('Deer is too old!')
-            self.is_dead = True
-
-        return
-    
-    def check_homerange(self, local_cover, params):
-        '''
-        If in dispersal mode check if this can be a home range
-        If in normal mode recalc direction to centroid
-        '''
-        
-        # Dummy test. Make current position the centroid no matter what
-        ###################################################
-        self.has_home_range = False # Agent has a home range.
-        ###################################################
-        
-        if self.has_home_range:
-            pass
-            # TODO:
-            # Has a home range. Should probably check if other deer are around?
-        else: 
-            if (local_cover > params['deer_control_vars']['homerange']['suitability_threshold']).sum() > params['deer_control_vars']['homerange']['min']:
-                # Local area has potential to be home range.
-                self.has_home_range = True
-                self.pos.centroid = self.pos.current_point
-                self.behaviour_state = Behaviour_State.NORMAL
-            else:
-                # Location is not good for home range
-                self.behaviour_state = Behaviour_State.EXPLORE
-        return
     
     def check_group(self):
         '''
@@ -270,15 +222,5 @@ class Deer(core.Agent):
     def check_disease(self, tick_datetime):
         '''
         Check disease progression, whether this agent is infectious 
-        '''
-        return
-
-    def calculate_next_state(self):
-        '''
-        Check whether the next state of this agent should be:
-            - Normal: Do deer things
-            - Disperse: Go in search of new home range
-            - Mating: Follow a female during mating season
-            - Explore: Go explore more. Less tight on home range
         '''
         return
