@@ -5,6 +5,8 @@ from rasterio.plot import reshape_as_image
 from rasterio.mask import mask
 import os
 import shapely
+# import pandas as pd
+# import geopandas as gpd
 
 import logging as pylog # Repast logger is called as "logging"
 
@@ -25,37 +27,6 @@ class WCS_Info:
     wcs_version: str = '2.0.1'
     x_label: str = 'X'
     y_label: str = 'Y'
- 
-
-# land_cover = WCS_Info(layer_id='mrlc_download__NLCD_2019_Land_Cover_L48',
-#                      wcs_url = 'https://www.mrlc.gov/geoserver/ows', 
-#                      epsg = 'EPSG:5070',
-#                      path = './tmp/2019_LandCover.tiff',
-#                      request_bounds = [1603849, 1637294, 1950179, 1973346], 
-#                      description = '2019 NLCD Landcover classification for Howard County'
-#                      )
-
-# imp_surf = WCS_Info(layer_id='mrlc_download__NLCD_2019_Impervious_L48',
-#                      wcs_url = 'https://www.mrlc.gov/geoserver/ows', 
-#                      epsg = 'EPSG:5070',
-#                      path = './tmp/2019_ImpervSurf.tiff',
-#                      request_bounds = [1603849, 1637294, 1950179, 1973346], 
-#                      description = '2019 NLCD Impervious Surfaces for Howard County'
-#                      ) 
-
-# # https://www.mrlc.gov/data/nlcd-2019-usfs-tree-canopy-cover-conus
-# # https://www.mrlc.gov/geoserver/ows?service=WCS&version=2.0.1&
-# # &REQUEST=GetCoverage&coverageId=mrlc_download:nlcd_tcc_conus_2019_v2021-4
-# # &SUBSETTINGCRS=EPSG:4326&subset=Long(-77.187113,-76.696774)&subset=Lat(39.103142,39.369323)&FORMAT=image/tiff
-
-# canopy = WCS_Info(layer_id='mrlc_download:nlcd_tcc_conus_2019_v2021-4',
-#                      wcs_url = 'https://www.mrlc.gov/geoserver/ows', 
-#                      epsg = 'EPSG:5070',
-#                      path = './tmp/2019_CONUS_Canopy.tiff',
-#                      bounds = [1603849, 1637294, 1950179, 1973346], 
-#                      description = '2019 NLCD Canopy Estimate for Howard County'
-#                      )
-############################################################################
 
 def fetch_img(WCS_Info):
     '''
@@ -75,6 +46,12 @@ def fetch_img(WCS_Info):
                                         WCS_Info.bounds[1], 
                                         WCS_Info.bounds[3])
             arr = reshape_as_image(mask(ds, shapes = [bbox], crop = True)[0]) 
+            # Cropped Image Bounds
+            image_bounds = rasterio.coords.BoundingBox(
+                                        WCS_Info.bounds[0], 
+                                        WCS_Info.bounds[2], 
+                                        WCS_Info.bounds[1], 
+                                        WCS_Info.bounds[3])
              
     else:
         log.info('GeoTiff does not exist, going to take download it...')
@@ -100,10 +77,23 @@ def fetch_img(WCS_Info):
     return arr, xy_resolution, image_bounds
 
 
-def bbox(coord_list):
-     box = []
-     for i in (0,1):
-         res = sorted(coord_list, key=lambda x:x[i])
-         box.append((res[0][i],res[-1][i]))
-     ret = f"({box[0][0]} {box[1][0]}, {box[0][1]} {box[1][1]})"
-     return ret
+def csv_to_gpkg(params):
+    '''
+    Convert the repast csv logfile into a geopackage with 
+    the x,y coords as point geom, and maybe the centroid geom too...
+    '''
+    in_csv = params['logging']['agent_log_file']
+    out_gpkg = params['logging']['gpkg_log_file']
+
+    # Load the CSV file
+    df = pd.read_csv(in_csv)
+
+    # Convert to GeoDataFrame
+    gdf = gpd.GeoDataFrame(
+        df, 
+        geometry=gpd.points_from_xy(df['x'], df['y'])
+    )
+
+    # Save to a GeoPackage file
+    gdf.to_file(out_gpkg, layer='agent_location', driver='GPKG')
+    return

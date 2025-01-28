@@ -12,7 +12,7 @@ echo "Pulling Container..."
 docker pull ghcr.io/gmu-geosciences/repast4py-container:latest
 
 echo "Installing anything new..."
-docker build  -t repast-local-docker .
+docker build  -t repast-local-docker dockerfile
 
 echo "Downloading raster files..."
 # TODO: python script to cache rasters.

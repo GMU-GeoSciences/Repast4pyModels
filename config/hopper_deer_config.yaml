@@ -4,10 +4,10 @@ sim:
 geo: 
   # Envelope for grid/continuous space for the simulation. Must be integers
   # Also the path to the geotiff to use.
-  x_min: 1615000
-  x_max: 1630000
-  y_min: 1960000
-  y_max: 1970000
+  x_min: 1605000
+  x_max: 1635000
+  y_min: 1952000
+  y_max: 1972000
   tiff_path: ./input/images/2019_CONUS_Canopy.tiff #in relation to project root dir
   buffer_size: 20 # max number of pixels that an agent can move in a single tick
 
@@ -18,7 +18,7 @@ time:
  
 logging:
   loglevel: WARNING # can be DEBUG, INFO, WARNING, ERROR
-  agent_log_file: 'output/01_benchmark.csv'
+  agent_log_file: 'output/deer.csv'
  
 deer:
   pop_size: 1000 # Number of deer agents to simulate

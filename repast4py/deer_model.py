@@ -9,6 +9,7 @@ from dataclasses import dataclass, field, fields, asdict
 
 import collections
 import csv
+from copy import copy, deepcopy
 
 import random as rndm
 import torch
@@ -23,7 +24,8 @@ from datetime import datetime, timedelta
 
 # Local Files
 from deer_agent.deer_agent import Deer, Deer_Config
-from landscape import fetch_img 
+from deer_agent import behaviour
+from landscape import fetch_img, landscape
 
 # model = None
 agent_tuple_cache = {}
@@ -34,22 +36,25 @@ Some Examples:
 https://github.com/Meguazy/Multi-agent-systems-and-parkinson/blob/main/src/parkinson.py 
 '''
 
-
 def restore_agent(agent_tuple: Tuple):
     """
-    Args:
-        agent_tuple: tuple containing the data returned by save function.
-        agent_tuple[0]: Agent ID
-        agent_tuple[1]: Agent Type
-        agent_tuple[2]: Rank
-        agent_tuple[3+]: Internal state of agent
-
     Deer tuple example: ((5, 0, 1), CFG_Dict_Object)
     (5, 0 ,1) == (AgentID, Type, Rank)
+
+    Args:
+        agent_tuple: tuple containing the data returned by save function.
+        agent_tuple[0][0]: Agent ID
+        agent_tuple[0][1]: Agent Type
+        agent_tuple[0][2]: Rank
+        agent_tuple[1]: CFG Dict 
     """
     log.debug(f'Restoring agent: {agent_tuple}')
-    uid = agent_tuple[0] 
-    if uid[1] == Deer.TYPE: #This should always be true
+    uid = agent_tuple[0]
+    # agent = Deer(uid[0], uid[2]) #(agent_id, rank)
+    # agent_cfg = agent_tuple[1]
+    # agent.set_cfg(agent_cfg)
+
+    if uid[1] == Deer.TYPE: 
         if uid in agent_tuple_cache:
             # Agent exists in cache.
             agent = agent_tuple_cache[uid]
@@ -59,33 +64,37 @@ def restore_agent(agent_tuple: Tuple):
             agent_cfg = agent_tuple[1]
             agent.set_cfg(agent_cfg)
             agent_tuple_cache[uid] = agent
-
-        agent.cfg = agent_tuple[1]
+ 
+        agent_cfg = agent_tuple[1]
+        agent.set_cfg(agent_cfg)
     else:
         log.warning('Unknown agent type.')
         agent = None
+
     return agent
 
-@dataclass
-class Metrics:
-    '''
-    Dataclass used by repast4py aggregate logging to record
-    some metrics after each tick.
+# @dataclass
+# class Metrics:
+#     '''
+#     Dataclass used by repast4py aggregate logging to record
+#     some metrics after each tick.
 
-    Currently recording:
-        - agent id: something to identify the agent. Might be a combination of rank and ID
-        - tick timestamp: TODO: Convert the tick to a timestamp
-        - Behaviour state: What was the agent doing? Foraging/resting/etc?
-        - Location: X/Y location of agent at tick time.
+#     Currently recording:
+#         - agent id: something to identify the agent. Might be a combination of rank and ID
+#         - tick timestamp: TODO: Convert the tick to a timestamp
+#         - Behaviour state: What was the agent doing? Foraging/resting/etc?
+#         - Location: X/Y location of agent at tick time.
 
-    '''
-    agent_id: int = 0
-    tick_timestamp: str = datetime.fromtimestamp(0).isoformat()
-    agent_location_x: float = 0
-    agent_location_y: float = 0
-    canopy_cover: float = 0
-    agent_behaviour_state: int = 0
-
+#     '''
+#     tick_timestamp: str = datetime.fromtimestamp(0).isoformat()
+#     agent_id: int = 0
+#     agent_location_x: float = 0
+#     agent_location_y: float = 0
+#     agent_centroid_x: float = 0
+#     agent_centroid_y: float = 0
+#     suitable: str = '' 
+#     agent_behaviour_state: str = ''
+ 
 class Model:
     """
     The Model class encapsulates the simulation, and is
@@ -118,14 +127,19 @@ class Model:
         self.tick_hour_interval = params['time']['hours_per_tick']
         
         # Setup the grids, read a raster file in, 
-        # # and transfer it into a shared_value array
+        # and transfer it into a shared_value array
         self.setup_repast_spatial()
           
-        # Setup the instrumentation to measure the outputs of the sim
-        self.metrics = Metrics()
+        # Setup the instrumentation to measure the outputs of the sim 
         self.agent_logger = logging.TabularLogger(comm, 
                                                   self.params.get('logging',{}).get('agent_log_file'), 
-                                                  ['tick', 'agent_id', 'agent_uid_rank', 'timestamp', 'x', 'y', 'canopy', 'state'])
+                                                  ['timestamp', 
+                                                   'uuid',  
+                                                   'uid',
+                                                   'x', 'y', 
+                                                   'centroid_x', 'centroid_y', 
+                                                   'Suitable', 
+                                                   'State'])
 
         
         # Initialise agents
@@ -140,8 +154,6 @@ class Model:
         ## Creating count_per_rank agents on this node
         for this_agent_id in range(agents_per_rank):
             self.add_agent(this_agent_id) 
-
-        self.last_agent_id = this_agent_id
 
     def setup_repast_spatial(self):
         '''
@@ -167,7 +179,7 @@ class Model:
 
         # xy_resolution and image_bounds are going to get overloaded if multiple rasters are ingested from different sources
         # Either stick to a single source, a single raster, or figure this out...
-        canopy_array, self.xy_resolution, self.image_bounds = fetch_img.fetch_img(canopy) 
+        canopy_array, self.xy_resolution, self.image_bounds = fetch_img.fetch_img(canopy)
 
         log.info(f'WCS Array shape: {canopy_array.shape}')
         log.info(f'WCS Image Bounds: {self.image_bounds}')
@@ -220,16 +232,19 @@ class Model:
         '''
         Start the agents and model.  
         '''
-        log.debug('Starting model...')
+        log.info('Starting model...')
         self.runner.execute()
 
     def end_sim(self):
         '''
         Clean up and log data.
         '''
-        log.debug(f'Cleaning up simulation...')
-        # self.data_set.close()
-        #TODO: figure out logging. Is it going to be [time,x,y,data] ? 
+        log.info(f'Cleaning up simulation...')
+        self.agent_logger.close()
+        #Convert csv file to geopackage to make viz easier
+        # log.info(f'  -Converting to geopackage...')
+        # fetch_img.csv_to_gpkg(self.params) # how to do this only once? 
+        return
 
     def add_agent(self, id, x = None, y = None):
         '''
@@ -241,14 +256,10 @@ class Model:
             x = random.default_rng.uniform(local_bounds.xmin, local_bounds.xmin + local_bounds.xextent)
             y = random.default_rng.uniform(local_bounds.ymin, local_bounds.ymin + local_bounds.yextent)
         
-        agent = Deer(id, self.rank)
-        #################
-        # TODO: Init the models: 
+        agent = Deer(id, self.rank) 
         deer_cfg = Deer_Config()  
         deer_cfg_object = deer_cfg.rand_factory(x,y,params)
         agent.set_cfg(deer_cfg_object)
-        # agent.
-        #################
         log.debug(f'Creating Rank:Agent {self.rank}:{agent.id}.') 
         self.contexts['deer'].add(agent)
         self.move_agent(agent,x,y)
@@ -258,7 +269,7 @@ class Model:
         Remove an agent from the sim. 
         '''
         log.debug(f'Removing agent...')
-        self.context.remove(agent)
+        self.contexts['deer'].remove(agent)
         return
 
     def move_agent(self, agent, x, y):
@@ -266,45 +277,74 @@ class Model:
         Agents move in space over one tick
         '''
         log.debug(f'Moving agent {self.rank}:{agent.id} to Point({x},{y})...')
+
+        location = self.shared_space.get_location(agent)
+        if location is not None:
+            agent.pos.last_point.x = copy(location.x)
+            agent.pos.last_point.y = copy(location.y)
+
         self.shared_space.move(agent, cpt(x,y))
         self.grid.move(agent, dpt(int(x),int(y)))
+
+        #TODO By getting the location it limits the agent to the grid...
+        location = self.shared_space.get_location(agent)
+        agent.pos.current_point.x = copy(location.x)
+        agent.pos.current_point.y = copy(location.y)
+
+
         return
 
     def step(self):
         '''
         Increment the sim by one step.
         '''
-        log.debug(f'Stepping...')
         tick = self.runner.schedule.tick
+        log.debug(f' ==== Stepping for tick: {tick} ==== ')
         self.tick_time = self.start_timestamp + timedelta(hours=self.tick_hour_interval)*tick
-        self.log_metrics(tick) 
         self.contexts['deer'].synchronize(restore_agent)
-
         log.debug('Looping through agents')
+        dead_agents = []
         for agent in self.contexts['deer'].agents(Deer.TYPE):
             log.debug(f'Working with agent {self.rank}:{agent.id}')
-            #For each DEER agent do something:
-            location = model.shared_space.get_location(agent)
-            next_x,next_y = agent.step(location, self.tick_time)
+
+            # Set Current location  from shared space
+            # location = model.shared_space.get_location(agent)
+            # agent.pos.current_point.x = location.x
+            # agent.pos.current_point.y = location.y
+            agent.timestamp = self.tick_time
+
+            # Calculate next step
+            local_cover, nearby_agents = landscape.get_nearby_items(agent, model, sense_range = 200)
+            agent = behaviour.calculate_next_state(agent, local_cover, nearby_agents, params)
+            next_x, next_y = agent.calculate_next_pos(self.xy_resolution)
+            
+            # Implement next step
             self.move_agent(agent, next_x, next_y)
+            if agent.is_dead:
+                dead_agents.append(agent)
+
+        for agent in dead_agents:
+            self.remove_agent(agent)
+        
+        self.log_metrics(tick)
+        return
     
     def log_metrics(self, tick):
         '''
         Log the outputs of the tick to a file.
         '''
         log.debug(f'Logging metrics...') 
-        num_agents = self.contexts['deer'].size([Deer.TYPE])
+        # num_agents = self.contexts['deer'].size([Deer.TYPE])
 
         if tick % 24 == 0: #Log once per day/24 ticks
-            log.info(f"  - Tick: {tick}: Agent count: {num_agents}")
+            # log.info(f"  - Tick: {tick}: Agent count: {num_agents}")
             log.info(f"  - Timestamp: {self.tick_time.isoformat()}")
 
         for agent in self.contexts['deer'].agents():
-            cont_location = model.shared_space.get_location(agent)
-            # cont_location = model.shared_space.get_location(agent)
-            grid_location = model.grid.get_location(agent) 
+            cont_location = self.shared_space.get_location(agent)
+            grid_location = self.grid.get_location(agent) 
             if grid_location is not None:
-                canopy_cover = model.canopy_layer.get(grid_location).item()
+                canopy_cover = self.canopy_layer.get(grid_location).item()
             else:
                 canopy_cover = -1
 
@@ -319,18 +359,28 @@ class Model:
             x_proj = x*self.xy_resolution[0] + int(self.image_bounds.left)
             y_proj = int(self.image_bounds.top) - y*self.xy_resolution[1]
 
-            self.agent_logger.log_row(tick, 
-                                      agent.id, 
-                                      agent.uid_rank,
-                                      self.tick_time.isoformat(),
+            # Get centroid and projcet it to 5070
+            x_proj_centroid = agent.pos.centroid.x*self.xy_resolution[0] + int(self.image_bounds.left)
+            y_proj_centroid = int(self.image_bounds.top) - agent.pos.centroid.y*self.xy_resolution[1]
+
+            ## Calc local variables
+            local_cover, nearby_agents = landscape.get_nearby_items(agent, model, sense_range=200)
+            suitable = behaviour.location_suitability(local_cover,nearby_agents, params)
+            nearby_agents_ids = [agent.id for agent in nearby_agents]
+            # log.debug(f'Nearby agents: {nearby_agents}')
+            agent_cfg = agent.get_cfg
+            self.agent_logger.log_row(self.tick_time.isoformat(),
+                                      agent.uuid, 
+                                      agent.uid, # Should have rank info?
                                       x_proj,
                                       y_proj,
-                                      canopy_cover,
+                                      x_proj_centroid,
+                                      y_proj_centroid, 
+                                      suitable, 
                                       agent.behaviour_state)
 
         self.agent_logger.write()
         return
- 
 
 def setup_logging(params):
     '''

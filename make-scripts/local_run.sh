@@ -7,6 +7,5 @@ echo "=============================="
 echo "== Running Repast Script... =="
 echo "==============================" 
 
-echo "Running repast4py script in local docker env..." 
-# echo $PWD
+echo "Running repast4py script in local docker env..."  
 docker run -it --rm --name repast-local-docker -v "$PWD":/usr/src/myapp -w /usr/src/myapp repast-local-docker mpirun -n 6 python ./repast4py/deer_model.py ./config/local_deer_config.yaml

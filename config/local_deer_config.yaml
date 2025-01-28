@@ -4,24 +4,40 @@ sim:
 geo: 
   # Envelope for grid/continuous space for the simulation. Must be integers
   # Also the path to the geotiff to use.
-  x_min: 1615000
-  x_max: 1630000
-  y_min: 1960000
-  y_max: 1970000
-  tiff_path: ./input/images/2019_CONUS_Canopy.tiff #in relation to project root dir
-  buffer_size: 20 # max number of pixels that an agent can move in a single tick
+  # x_min: 1615000
+  # x_max: 1630000
+  # y_min: 1960000
+  # y_max: 1970000
 
+  # x_min: 1613845
+  # x_max: 1637295
+  # y_min: 1950165
+  # y_max: 1973355
+
+  x_min: 1616289
+  x_max: 1622764
+  y_min: 1960591
+  y_max: 1965355 
+
+  tiff_path: ./input/images/2019_CONUS_Canopy.tiff #in relation to project root dir
+  buffer_size: 10 # max number of pixels that an agent can move in a single tick
+ 
 time: 
   start_time: "2000-01-01T00:00:00" #ISO 8601 Timestamp
   hours_per_tick: 1
-  end_tick: 300
+  end_tick: 240
  
 logging:
-  loglevel: INFO # can be DEBUG, INFO, WARNING, ERROR
-  agent_log_file: 'output/agent_log.csv'
+  # loglevel: DEBUG # can be DEBUG, INFO, WARNING, ERROR
+  loglevel: INFO
+  # loglevel: WARNING
+  # loglevel: ERROR
+  agent_log_file: './output/agent_log.csv'
+  gpkg_log_file: './output/agents.gpkg'
+  centroid_log_file: './output/centroids.gpkg'
  
 deer:
-  pop_size: 300 # Number of deer agents to simulate
+  pop_size: 50 # Number of deer agents to simulate
   disease_starting_ratio: 0 # What ratio of deer start sim being sick.
   input_agents: 'input/deer_agents.parq' # Starting params for each deer agent.
  
@@ -58,13 +74,17 @@ deer_control_vars:  # From https://www.researchgate.net/publication/363077733_Th
     female: 0.2
     male: 0.4
     fawn: 0.2
-  annual_schedule: #ISO8601 --MM-DD .strftime('%m-%d')
-    gestation_start: 01-01
-    fawning_start: 05-15
-    prerut_start: 09-01
-    rut_start: 11-01
+  # annual_schedule: #ISO8601 --MM-DD .strftime('%m-%d')
+  #   gestation_start: 01-01
+  #   fawning_start: 05-15
+  #   prerut_start: 09-01
+  #   rut_start: 11-01
   age:
-    fawn_to_adult: 12 #months
-    adult_max: 100 #months. Max age of agents
+    fawn_to_adult: 360 # days. Fawn grows up
+    adult_max: 100000 # days. Max age of agents
+  homerange:
+    max: 100
+    min: 50
+    suitability_threshold: 80 
 
   #TODO: put file in here controlling the deer movement 
