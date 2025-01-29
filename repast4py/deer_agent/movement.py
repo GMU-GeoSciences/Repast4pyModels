@@ -40,6 +40,7 @@ for different cases.
 # PreRut	4.478378	0.429409	-0.007190	10.923116
 # Rut	    5.354084	0.383384	0.101771	7.730135
 
+# ValueError: mutable default <class 'deer_agent.movement.Position_Vector'> for field pos is not allowed: use default_factory
 @dataclass
 class StepTurnDist_mixin:
     '''

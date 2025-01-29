@@ -42,7 +42,7 @@ logging:
 # Healthy pop is 5 to 15 per square mile 
 # https://columbiaassociation.org/open-space/oh-deer-tips-and-tricks-for-living-with-deer-in-columbia/#:~:text=The%20Howard%20County%20Department%20of,15%20deer%20per%20square%20mile.
 deer:
-  pop_size: 50 # Number of deer agents to simulate
+  pop_size: 10 # Number of deer agents to simulate
   disease_starting_ratio: 0 # What ratio of deer start sim being sick.
   input_agents: 'input/deer_agents.parq' # Starting params for each deer agent.
  

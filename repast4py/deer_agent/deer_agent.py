@@ -22,6 +22,7 @@ log = pylog.getLogger(__name__)
 def get_new_uuid() -> str:
     return str(uuid.uuid4())
  
+ 
 @dataclass
 class Deer_Config(object):
     '''
@@ -45,7 +46,7 @@ class Deer_Config(object):
     behaviour_timer: int = 0
     explore_end_datetime: datetime = datetime.datetime(2020, 1, 2)
     is_dead: bool = False
-    pos: movement.Position_Vector = field(default = movement.Position_Vector(movement.Point(0, 0),
+    pos: movement.Position_Vector = field(default_factory = lambda:movement.Position_Vector(movement.Point(0, 0),
                                                                              movement.Point(0, 0),
                                                                              movement.Point(0, 0)))
     timestamp: datetime.datetime = datetime.datetime.fromisoformat('1970-01-01')
