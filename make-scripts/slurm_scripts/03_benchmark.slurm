@@ -3,8 +3,8 @@
 #Submit this script with: sbatch singularity_run.slurm
 
 #SBATCH --job-name=benchmark_03   ##name that will show up in the queue
-#SBATCH --output=/scratch/%u/%x-%N-%j.out   ##filename of the output
-#SBATCH --error=/scratch/%u/%x-%N-%j.err   ##filename of the error output
+#SBATCH --output=/home/%u/Repast4pyModels/%x-%N-%j.out   ##filename of the output
+#SBATCH --error=/home/%u/Repast4pyModels/%x-%N-%j.err   ##filename of the error output
 #SBATCH --nodes=1  ##number of nodes to use
 #SBATCH --ntasks=32  ##number of tasks to run
 #SBATCH --time=0-1:00:00  ##time for analysis (day-hour:min:sec)
