@@ -6,10 +6,10 @@
 #SBATCH --output=/home/%u/Repast4pyModels/output/%x-%N-%j.out   ##filename of the output
 #SBATCH --error=/home/%u/Repast4pyModels/output/%x-%N-%j.err   ##filename of the error output
 #SBATCH --nodes=1  ##number of nodes to use
-#SBATCH --ntasks=8  ##number of tasks to run
+#SBATCH --ntasks=20  ##number of tasks to run
 #SBATCH --time=0-1:00:00  ##time for analysis (day-hour:min:sec)
 #SBATCH --cpus-per-task=1  ##the number of threads the code will use
-#SBATCH --mem=20GB  ##memory allocation per node
+#SBATCH --mem=8GB  ##memory allocation per node
 #SBATCH --partition normal  ##the partition to run in
 #SBATCH --mail-user rmeyer6@gmu.edu  ##your email address
 #SBATCH --mail-type BEGIN  ##slurm will email you when your job starts
