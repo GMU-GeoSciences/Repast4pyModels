@@ -22,7 +22,7 @@ logging:
   loglevel: INFO
   # loglevel: WARNING
   # loglevel: ERROR
-  agent_log_file: './output/benchmark_01.csv' 
+  agent_log_file: './output/benchmark_02.csv' 
  
 deer:
   pop_size: 100000 # Number of deer agents to simulate

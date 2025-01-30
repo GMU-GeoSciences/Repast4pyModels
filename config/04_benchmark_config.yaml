@@ -22,10 +22,10 @@ logging:
   loglevel: INFO
   # loglevel: WARNING
   # loglevel: ERROR
-  agent_log_file: './output/benchmark_01.csv' 
+  agent_log_file: './output/benchmark_04.csv' 
  
 deer:
-  pop_size: 100000 # Number of deer agents to simulate
+  pop_size: 10000 # Number of deer agents to simulate
   disease_starting_ratio: 0 # What ratio of deer start sim being sick. 
  
 deer_control_vars:  # From https://www.researchgate.net/publication/363077733_The_effect_of_landscape_transmission_mode_and_social_behavior_on_disease_transmission_Simulating_the_transmission_of_chronic_wasting_disease_in_white-tailed_deer_Odocoileus_virginianus_populations_usi

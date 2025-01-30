@@ -1,15 +1,11 @@
-import numpy as np
-import pandas as pd
-import repast4py
 import logging as pylog # Repast logger is called as "logging"
 
 from typing import Dict, Tuple
 from mpi4py import MPI
-from dataclasses import dataclass, field, fields, asdict
 
-import collections
-import csv
 from copy import copy, deepcopy
+import json
+import os
 
 import random as rndm
 import torch
@@ -94,7 +90,7 @@ def restore_agent(agent_tuple: Tuple):
 #     agent_centroid_y: float = 0
 #     suitable: str = '' 
 #     agent_behaviour_state: str = ''
- 
+
 class Model:
     """
     The Model class encapsulates the simulation, and is
@@ -233,6 +229,7 @@ class Model:
         Start the agents and model.  
         '''
         log.info('Starting model...')
+        self.server_start_timestamp = datetime.now()
         self.runner.execute()
 
     def end_sim(self):
@@ -240,11 +237,43 @@ class Model:
         Clean up and log data.
         '''
         log.info(f'Cleaning up simulation...')
+        self.end_start_timestamp = datetime.now()
         self.agent_logger.close()
+        self.log_model_info()
         #Convert csv file to geopackage to make viz easier
         # log.info(f'  -Converting to geopackage...')
         # fetch_img.csv_to_gpkg(self.params) # how to do this only once? 
         return
+    
+
+    def log_model_info(self):
+        '''
+        Log the model info like the area covered, number of agents, time it took to run etc
+        The goal is to have performance metadata that would be used in benchmarking.
+        '''
+        log.info("Saving model run info...")
+        x_km = self.xy_resolution[0]*(self.image_bounds.right - self.image_bounds.left)/1000
+        y_km = self.xy_resolution[1]*(self.image_bounds.top - self.image_bounds.bottom)/1000
+
+        output_dict = {
+                    'number_of_ranks':self.comm.Get_size(),
+                    'agents_at_start': self.params.get('deer',{}).get('pop_size'),
+                    'agent_at_end':'',
+                    'spatial_km2':x_km*y_km,
+                    'model_start_time':self.start_timestamp.isoformat(),
+                    'model_end_tick':self.params['time']['end_tick'],
+                    'hours_per_tick':self.tick_hour_interval,
+                    'server_start_time':self.server_start_timestamp.isoformat(),
+                    'sever_end_time':self.end_start_timestamp.isoformat(),
+                    'sim_duration_minutes': (self.end_start_timestamp - self.server_start_timestamp).total_seconds() / 60.0,
+                    'agents_per_km2':int(self.params.get('deer',{}).get('pop_size'))/(x_km*y_km),
+                    'params': self.params,
+                    }
+        with open(self.params['logging']['model_meta_file'], 'w') as f:
+            json.dump(output_dict, f)
+        os.chmod(self.params['logging']['model_meta_file'], 0o666)
+        
+        return output_dict 
 
     def add_agent(self, id, x = None, y = None):
         '''
@@ -392,20 +421,20 @@ def setup_logging(params):
     pylog.basicConfig(level=loglevel, format='%(asctime)s %(relativeCreated)6d %(threadName)s ::%(levelname)-8s %(message)s')
     log = pylog.getLogger()
 
-    if params.get('sim',{}).get('environment') == 'hopper':
-        # Only log ERROR's
-        log.setLevel('ERROR')
+    # if params.get('sim',{}).get('environment') == 'hopper':
+    #     # Only log ERROR's
+    #     log.setLevel('ERROR')
 
-    elif params.get('sim',{}).get('environment') == 'local':
-        # Set Log level
-        log.setLevel(loglevel)
-    else:
-        # Do not setup a command line logger.
-        log.setLevel('ERROR')
-        log.error('Unknown Environment...')
+    # elif params.get('sim',{}).get('environment') == 'local':
+    #     # Set Log level
+    #     log.setLevel(loglevel)
+    # else:
+    #     # Do not setup a command line logger.
+    #     log.setLevel('ERROR')
+    #     log.error('Unknown Environment...')
 
     log.debug('Ready to log!')
-    log.info(f'Params: {params}')
+    log.debug(f'Params: {params}')
     return log
 
 def run(params: Dict):
