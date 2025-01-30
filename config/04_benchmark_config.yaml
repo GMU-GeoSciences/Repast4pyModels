@@ -1,6 +1,17 @@
-sim:
- environment: local # Can be "hopper" or "local". Changes some of the logging to make sense for big sims.
+#################
+## CONFIG FILE ##
+#################
+# This is for controlling the repast4py deer model. 
+# Check the github repo for more info on this file
 
+logging:
+  # loglevel: DEBUG # can be DEBUG, INFO, WARNING, ERROR
+  loglevel: INFO
+  # loglevel: WARNING
+  # loglevel: ERROR
+  agent_log_file: './output/experiments/agent_number/benchmark_01.csv'
+  model_meta_file: './output/experiments/agent_number/benchmark_meta_01.json'
+ 
 geo: 
   # Envelope for grid/continuous space for the simulation. Must be integers
   # Also the path to the geotiff to use.
@@ -15,17 +26,10 @@ geo:
 time: 
   start_time: "2000-01-01T00:00:00" #ISO 8601 Timestamp
   hours_per_tick: 1
-  end_tick: 1000
- 
-logging:
-  # loglevel: DEBUG # can be DEBUG, INFO, WARNING, ERROR
-  loglevel: INFO
-  # loglevel: WARNING
-  # loglevel: ERROR
-  agent_log_file: './output/benchmark_04.csv' 
+  end_tick: 100
  
 deer:
-  pop_size: 10000 # Number of deer agents to simulate
+  pop_size: 800 # Number of deer agents to simulate
   disease_starting_ratio: 0 # What ratio of deer start sim being sick. 
  
 deer_control_vars:  # From https://www.researchgate.net/publication/363077733_The_effect_of_landscape_transmission_mode_and_social_behavior_on_disease_transmission_Simulating_the_transmission_of_chronic_wasting_disease_in_white-tailed_deer_Odocoileus_virginianus_populations_usi
@@ -60,12 +64,7 @@ deer_control_vars:  # From https://www.researchgate.net/publication/363077733_Th
   annual_mortality:
     female: 0.2
     male: 0.4
-    fawn: 0.2
-  # annual_schedule: #ISO8601 --MM-DD .strftime('%m-%d')
-  #   gestation_start: 01-01
-  #   fawning_start: 05-15
-  #   prerut_start: 09-01
-  #   rut_start: 11-01
+    fawn: 0.2 
   age:
     fawn_to_adult: 360 # days. Fawn grows up
     adult_max: 100000 # days. Max age of agents
@@ -73,5 +72,3 @@ deer_control_vars:  # From https://www.researchgate.net/publication/363077733_Th
     max: 100
     min: 50
     suitability_threshold: 60 
-
-  #TODO: put file in here controlling the deer movement 
