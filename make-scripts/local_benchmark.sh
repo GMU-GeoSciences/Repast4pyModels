@@ -8,7 +8,7 @@ echo "== Running Repast Script... =="
 echo "==============================" 
 
 echo "Running repast4py script in local docker env..."
-EXP="agent_number"
+EXP="spatial_area"
 
 echo "====================="
 echo "== Benchmark 01... =="

@@ -6,6 +6,7 @@ from mpi4py import MPI
 from copy import copy, deepcopy
 import json
 import os
+import pathlib
 
 import random as rndm
 import torch
@@ -269,6 +270,9 @@ class Model:
                     'agents_per_km2':int(self.params.get('deer',{}).get('pop_size'))/(x_km*y_km),
                     'params': self.params,
                     }
+        
+        log_path = pathlib.Path(self.params['logging']['model_meta_file']).parents[0]
+        log_path.mkdir(parents=True, exist_ok=True, mode=0o666)
         with open(self.params['logging']['model_meta_file'], 'w') as f:
             json.dump(output_dict, f)
         os.chmod(self.params['logging']['model_meta_file'], 0o666)
