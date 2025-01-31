@@ -20,6 +20,6 @@
 module load gnu9 intel mpich git singularity
 
 ## Load modules, insert code, and run your programs here.
-mpirun -n 8 singularity run /containers/hopper/UserContainers/$USER/repast4py_latest.sif python ./repast4py/deer_model.py ./config/03_benchmark_config.yaml
+mpirun -n 20 singularity run /containers/hopper/UserContainers/$USER/repast4py_latest.sif python ./repast4py/deer_model.py ./config/03_benchmark_config.yaml
 
  
