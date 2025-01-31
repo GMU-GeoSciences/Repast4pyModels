@@ -9,7 +9,7 @@
 #SBATCH --ntasks=40  ##number of tasks to run
 #SBATCH --time=0-1:00:00  ##time for analysis (day-hour:min:sec)
 #SBATCH --cpus-per-task=1  ##the number of threads the code will use
-#SBATCH --mem-per-task=1GB
+#SBATCH --mem=20GB  ##memory allocation per node
 #SBATCH --partition normal  ##the partition to run in
 #SBATCH --mail-user rmeyer6@gmu.edu  ##your email address
 #SBATCH --mail-type BEGIN  ##slurm will email you when your job starts
