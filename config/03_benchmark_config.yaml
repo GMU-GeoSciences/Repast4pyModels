@@ -9,8 +9,8 @@ logging:
   loglevel: INFO
   # loglevel: WARNING
   # loglevel: ERROR
-  agent_log_file: './output/experiments/core_number/benchmark_03.csv'
-  model_meta_file: './output/experiments/core_number/benchmark_meta_03.json'
+  agent_log_file: './output/experiments/agent_number/benchmark_03.csv'
+  model_meta_file: './output/experiments/agent_number/benchmark_meta_03.json'
  
 geo: 
   # Envelope for grid/continuous space for the simulation. Must be integers
