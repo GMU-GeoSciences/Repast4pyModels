@@ -42,14 +42,6 @@ class Behaviour_State(Enum):
     DISPERSE = 2
     MATING = 3
     EXPLORE = 4
- 
-def local_suitability():
-    '''
-    Given local area and nearby agents, decide whether this is a good place to establish
-    a home range, or whether this agent should rather disperse/explore
-    '''
-    
-    return
 
 def check_group():
     '''
@@ -118,19 +110,6 @@ def establish_homerange(agent):
 
     return agent
 
-def grow_up(agent, params):
-    '''
-    Fawn grows up. This causes it to enter disperse (sometimes).
-    '''
-    agent.is_fawn = False
-
-    # male_disperse_prob = params['deer_control_vars']['male_disperse_prob']
-    # female_disperse_prob = params['deer_control_vars']['female_disperse_prob']
-    # if agent.is_male and (rndm.random() < male_disperse_prob):
-    #     agent = enter_disperse_state(agent)
-    # if not(agent.is_male) and (rndm.random() < female_disperse_prob):
-    #     agent = enter_disperse_state(agent)
-    return agent
 
 def location_suitability(local_array, nearby_agents, params):
     '''
@@ -154,21 +133,35 @@ def calculate_next_state(agent, local_cover, nearby_agents, params):
         Seeing as how this step is going to be run billions of times 
         computational efficiency is important. 
     '''  
-    # time_of_year = time_functions.check_time_of_year(agent.timestamp)
-    # agent = time_functions.check_age(agent, params) 
+    time_of_year = time_functions.check_time_of_year(agent.timestamp)
+    agent = time_functions.check_age(agent, params) 
     good_hr = location_suitability(local_cover, nearby_agents, params) 
 
     ############### NORMAL ############### 
     if agent.behaviour_state == Behaviour_State.NORMAL:
         if agent.has_homerange:
             # sometimes start randomly exploring
+            if time_of_year == time_functions.DeerSeasons.FAWNING:
+                explore_chance = float(params['deer_control_vars']['explore_chance']['fawning'])
+            if time_of_year == time_functions.DeerSeasons.GESTATION:
+                explore_chance = float(params['deer_control_vars']['explore_chance']['gestation']) 
+            if time_of_year == time_functions.DeerSeasons.PRERUT:
+                explore_chance = float(params['deer_control_vars']['explore_chance']['prerut']) 
+            if time_of_year == time_functions.DeerSeasons.RUT:
+                explore_chance = float(params['deer_control_vars']['explore_chance']['rut']) 
+            
+            if (rndm.random() < explore_chance):
+                # Agent decides to go exploring
+                agent = enter_explore_state(agent)
+                return agent
+
             if not(good_hr):
-                # agent.behaviour_state = Behaviour_State.DISPERSE
+                # If local conditions are bad, then disperse...
+                agent.behaviour_state = Behaviour_State.DISPERSE
                 pass
         else:
             # Agent has no homerange, go look for one.
-            # agent.behaviour_state = Behaviour_State.DISPERSE 
-            pass
+            agent.behaviour_state = Behaviour_State.DISPERSE 
         return agent
     
     ############### DISPERSE ###############
@@ -188,19 +181,11 @@ def calculate_next_state(agent, local_cover, nearby_agents, params):
     #     pass
     #     return agent
     
-    # ############### EXPLORE ###############
-    # elif agent.behaviour_state == Behaviour_State.EXPLORE:
-    #     if agent.timestamp > agent.explore_end_datetime:
-    #         if good_hr:
-    #             # Stop exploring
-    #             agent  = enter_normal_state(agent)
-    #         else: 
-    #             agent  = enter_normal_state(agent)
-
-    #     else:
-    #         # Keep Exploring
-    #         pass 
-    #     return agent
+    ############### EXPLORE ###############
+    elif agent.behaviour_state == Behaviour_State.EXPLORE:
+        if agent.timestamp > agent.explore_end_datetime: 
+            agent  = enter_normal_state(agent)  
+        return agent
 
     log.warning('Something went wrong with behaviour step...')
     return agent

@@ -10,10 +10,12 @@ from enum import Enum
 import datetime
 import numpy as np
 import uuid
+import ast
 
 import logging as pylog # Repast logger is called as "logging"
 from . import movement
 from . import behaviour
+from . import disease
 
 
 log = pylog.getLogger(__name__)
@@ -22,17 +24,22 @@ log = pylog.getLogger(__name__)
 def get_new_uuid() -> str:
     return str(uuid.uuid4())
  
+@dataclass
+class DiseaseState:
+  name: str
+  template: "DiseaseEnum"
+
+class DiseaseEnum(str, Enum):
+  SUSCEPTIBLE = "Susceptible"
+  INFECTED = "Infected"
+  RECOVERED = "Recovered"
  
 @dataclass
 class Deer_Config(object):
     '''
     Some basic configuration for a deer agent. 
     '''  
-    uuid: str = field(default_factory=get_new_uuid)
-    is_infected: bool = False
-    is_contagious: bool = False
-    has_recovered: bool = False
-    disease_timer: int = 0
+    uuid: str = field(default_factory=get_new_uuid) 
     random_seed: int = 0
     group_id: int = 0
     birth_date: datetime = datetime.datetime(2020, 1, 1)
@@ -43,8 +50,10 @@ class Deer_Config(object):
     current_x: float = 0.0 # field(repr=False, default=10)
     current_y: float = 0.0
     behaviour_state: behaviour.Behaviour_State = field(default = behaviour.Behaviour_State.DISPERSE) 
+    disease_state: disease.Disease_State = field(default = disease.Disease_State.SUSCEPTIBLE) 
     behaviour_timer: int = 0
     explore_end_datetime: datetime = datetime.datetime(2020, 1, 2)
+    disease_end_datetime: datetime = datetime.datetime(2020, 1, 2)
     is_dead: bool = False
     pos: movement.Position_Vector = field(default_factory = lambda:movement.Position_Vector(movement.Point(0, 0),
                                                                              movement.Point(0, 0),
@@ -68,14 +77,21 @@ class Deer_Config(object):
         '''
         initial_x = x
         initial_y = y
-        initial_timestamp = datetime.datetime.fromisoformat(params['time']['start_time']) 
+        initial_timestamp = datetime.datetime.fromisoformat(params['time']['start_time'])
+        initial_infection_chance = float(params['deer_control_vars']['disease']['infectious_start_rate'])
+        
+        if rndm.random() < initial_infection_chance:
+            # Agent should be infected 
+            random_params = ast.literal_eval(params['deer_control_vars']['disease']['immunity_duration'])
+            immunity_days = rndm.gauss(random_params[0], random_params[1]) 
+            disease_end_datetime = initial_timestamp + datetime.timedelta(days=immunity_days)
+            disease_state = disease.Disease_State.INFECTED
+        else: 
+            disease_state = disease.Disease_State.SUSCEPTIBLE
+            disease_end_datetime = initial_timestamp
 
         return cls(
-            uuid  = get_new_uuid(),
-            is_infected   = rndm.random() < params['deer']['disease_starting_ratio'], # Is true if random number below 0.1. Thus ~10% of population will start infected...  
-            is_contagious = False, 
-            has_recovered = False,
-            disease_timer = rndm.randint(1, 100),
+            uuid  = get_new_uuid(), 
             random_seed = rndm.randint(1, 100000),
             group_id = None,
             birth_date = initial_timestamp - datetime.timedelta(days=rndm.randint(1, 2000)),
@@ -86,8 +102,10 @@ class Deer_Config(object):
             current_x = initial_x,
             current_y = initial_y,
             behaviour_state = behaviour.Behaviour_State.DISPERSE,
+            disease_state = disease_state,
             behaviour_timer = 0,
             explore_end_datetime = initial_timestamp + datetime.timedelta(hours=rndm.randint(12, 24)),
+            disease_end_datetime = disease_end_datetime,
             is_dead = False,
             pos = movement.Position_Vector(last_point = movement.Point(initial_x, initial_y),
                                         current_point = movement.Point(initial_x, initial_y),
@@ -122,11 +140,7 @@ class Deer(core.Agent):
         Set/Get the config variables to/from a dict. This is to avoid the agent restore 
         function having a bunch of tuples.
         '''
-        self.uuid = agent_cfg.uuid
-        self.is_infected = agent_cfg.is_infected
-        self.is_contagious = agent_cfg.is_contagious
-        self.has_recovered = agent_cfg.has_recovered
-        self.disease_timer = agent_cfg.disease_timer
+        self.uuid = agent_cfg.uuid 
         self.random_seed = agent_cfg.random_seed
         self.group_id = agent_cfg.group_id
         self.birth_date = agent_cfg.birth_date
@@ -137,19 +151,17 @@ class Deer(core.Agent):
         self.current_x = agent_cfg.current_x
         self.current_y = agent_cfg.current_y
         self.behaviour_state = agent_cfg.behaviour_state
+        self.disease_state = agent_cfg.disease_state 
         self.behaviour_timer = agent_cfg.behaviour_timer
         self.explore_end_datetime = agent_cfg.explore_end_datetime
+        self.disease_end_datetime = agent_cfg.disease_end_datetime
         self.is_dead = agent_cfg.is_dead
         self.pos = agent_cfg.pos
         self.timestamp = agent_cfg.timestamp  
 
     def get_cfg(self):
         agent_cfg = Deer_Config()
-        agent_cfg.uuid = self.uuid 
-        agent_cfg.is_infected = self.is_infected 
-        agent_cfg.is_contagious = self.is_contagious 
-        agent_cfg.has_recovered = self.has_recovered  
-        agent_cfg.disease_timer = self.disease_timer  
+        agent_cfg.uuid = self.uuid  
         agent_cfg.random_seed = self.random_seed 
         agent_cfg.group_id = self.group_id  
         agent_cfg.birth_date = self.birth_date  
@@ -160,8 +172,10 @@ class Deer(core.Agent):
         agent_cfg.current_x = self.current_x 
         agent_cfg.current_y = self.current_y 
         agent_cfg.behaviour_state = self.behaviour_state 
+        agent_cfg.disease_state = self.disease_state
         agent_cfg.behaviour_timer = self.behaviour_timer
         agent_cfg.explore_end_datetime = self.explore_end_datetime
+        agent_cfg.disease_end_datetime = self.disease_end_datetime
         agent_cfg.is_dead = self.is_dead
         agent_cfg.pos = self.pos
         agent_cfg.timestamp = self.timestamp  
@@ -187,15 +201,6 @@ class Deer(core.Agent):
         return (self.uid,
                 cfg)
 
-    def expose_to_infection(self, tick):
-        '''
-        Deer is exposed to infection. State changes depend on immunity, if already sick, etc 
-        '''
-        self.is_infected = True
-        self.disease_timer = 0 
-        # TODO: This needs to be more complex
-        return
-
     def calculate_next_pos(self, xy_resolution):
         '''
         Take last known position, home range centroid, and average_speed
@@ -209,19 +214,6 @@ class Deer(core.Agent):
          computational efficiency is important. 
         ''' 
         # CurrentX/Y should be the same as self.pos.current_point
-        log.debug(f'Pos Vector: {self.pos}') 
+        # log.debug(f'Pos Vector: {self.pos}') 
         next_position = movement.step(self, xy_resolution) 
         return next_position.x, next_position.y
-    
-    def check_group(self):
-        '''
-        Check distance to herd group, distance to fawn, or distance to potential mate
-        '''
-
-        return
-
-    def check_disease(self, tick_datetime):
-        '''
-        Check disease progression, whether this agent is infectious 
-        '''
-        return
