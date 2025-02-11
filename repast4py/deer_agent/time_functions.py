@@ -50,7 +50,7 @@ def is_season(timestamp, deer_season):
                                     month = deer_season.end_month,
                                     day = deer_season.end_day)
     
-    return start_date < date_stamp < end_date
+    return start_date <= date_stamp < end_date
 
 def check_age(agent, params):
     '''
@@ -65,32 +65,51 @@ def check_age(agent, params):
     fawn_to_adult = int(params['deer_control_vars']['age']['fawn_to_adult'])
     max_age = int(params['deer_control_vars']['age']['adult_max'])
 
+    # Check if fawn grows up, and then maybe disperses.
     if agent.is_fawn and agent.age > datetime.timedelta(days=fawn_to_adult):
-        log.debug('Fawn grows up!')
-        behaviour.grow_up(agent, params)
+        log.debug(f'Fawn {agent.uuid} grows up!')
+        agent.is_fawn = False
+        male_disperse_prob = params['deer_control_vars']['age']['male_disperse_prob']
+        female_disperse_prob = params['deer_control_vars']['age']['female_disperse_prob']
+        if agent.is_male and (rndm.random() < male_disperse_prob):
+            agent = behaviour.enter_disperse_state(agent)
+        if not(agent.is_male) and (rndm.random() < female_disperse_prob):
+            agent = behaviour.enter_disperse_state(agent) 
 
+    # Check if deer is too old.
     if agent.age > datetime.timedelta(days=max_age):
-        log.debug('Deer is too old!')
+        log.debug(f'Deer {agent.uuid} is too old!')
         agent.is_dead = True
 
-    # TODO: Check Annual Mortality
-    # params['deer_control_vars']['annual_mortality']['female']
+    # Check if deer dies from some other event covered by "annual mortality"
+    if agent.is_fawn:
+        annual_mortality = params['deer_control_vars']['annual_mortality']['fawn']
+    elif agent.is_male: 
+        annual_mortality = params['deer_control_vars']['annual_mortality']['male']
+    else: 
+        annual_mortality = params['deer_control_vars']['annual_mortality']['female']
+    tick_mortality = annual_mortality/365/24*int(params['time']['hours_per_tick'])
     
+    if (rndm.random() < tick_mortality):
+        log.debug(f'Deer {agent.uuid} has died from annual mortality rate!')
+        agent.is_dead = True
     return agent
 
 def check_time_of_year(input_datetime):
     '''
     Check what time period it is in this tick.
-    '''
+    ''' 
     for season in DeerSeasons:
         # loop through DeerSeasons enum and return the 
         # season that envelopes input_datetime.
         if is_season(input_datetime, season):
             time_of_year = season
+            return time_of_year
         else: 
             time_of_year = None
-
-    return time_of_year
+            log.warning(f'Time of year is unknown: {input_datetime}!')
+            log.warning(f'Time of year is unknown: {input_datetime}!')
+            return time_of_year
 
 def increment_timers(agent):
     '''

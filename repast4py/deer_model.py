@@ -21,7 +21,7 @@ from datetime import datetime, timedelta
 
 # Local Files
 from deer_agent.deer_agent import Deer, Deer_Config
-from deer_agent import behaviour
+from deer_agent import behaviour, movement, disease
 from landscape import fetch_img, landscape
 
 # model = None
@@ -130,15 +130,22 @@ class Model:
         # Setup the instrumentation to measure the outputs of the sim 
         self.agent_logger = logging.TabularLogger(comm, 
                                                   self.params.get('logging',{}).get('agent_log_file'), 
-                                                  ['timestamp', 
-                                                   'uuid',  
-                                                   'uid',
+                                                  ['Timestamp', 
+                                                   'UUID',  
+                                                   'UID',
+                                                   'Rank',
+                                                   'Is Male',
+                                                   'Is Fawn',
+                                                   'Has HomeRange',
                                                    'x', 'y', 
-                                                   'centroid_x', 'centroid_y', 
-                                                   'Suitable', 
-                                                   'State'])
-
-        
+                                                   'centroid_x', 'centroid_y',  
+                                                   'Suitable Location', 
+                                                   'Behaviour State', 
+                                                   'Disease State',
+                                                   'Data1',
+                                                   'Data2',
+                                                   ])
+ 
         # Initialise agents
         total_agent_count = self.params.get('deer',{}).get('pop_size')
         world_size = comm.Get_size()
@@ -337,22 +344,25 @@ class Model:
         self.contexts['deer'].synchronize(restore_agent)
         log.debug('Looping through agents')
         dead_agents = []
+        deer_vision_range = int(self.params['deer']['deer_vision_range'])
+
+
         for agent in self.contexts['deer'].agents(Deer.TYPE):
             log.debug(f'Working with agent {self.rank}:{agent.id}')
 
-            # Set Current location  from shared space
-            # location = model.shared_space.get_location(agent)
-            # agent.pos.current_point.x = location.x
-            # agent.pos.current_point.y = location.y
+            # Get tick info
             agent.timestamp = self.tick_time
+            local_cover, nearby_agents = landscape.get_nearby_items(agent, model, sense_range = deer_vision_range)
+            
+            # Calculate disease state
+            agent = disease.check_disease_state(agent, nearby_agents, params)
 
             # Calculate next step
-            local_cover, nearby_agents = landscape.get_nearby_items(agent, model, sense_range = 200)
             agent = behaviour.calculate_next_state(agent, local_cover, nearby_agents, params)
-            next_x, next_y = agent.calculate_next_pos(self.xy_resolution)
+            next_position = movement.step(agent, self.xy_resolution) 
             
             # Implement next step
-            self.move_agent(agent, next_x, next_y)
+            self.move_agent(agent, next_position.x, next_position.y)
             if agent.is_dead:
                 dead_agents.append(agent)
 
@@ -376,10 +386,6 @@ class Model:
         for agent in self.contexts['deer'].agents():
             cont_location = self.shared_space.get_location(agent)
             grid_location = self.grid.get_location(agent) 
-            if grid_location is not None:
-                canopy_cover = self.canopy_layer.get(grid_location).item()
-            else:
-                canopy_cover = -1
 
             if cont_location is not None:
                 x = cont_location.x  # There is a small offset between raster values and agent locations shown in QGIS
@@ -392,25 +398,38 @@ class Model:
             x_proj = x*self.xy_resolution[0] + int(self.image_bounds.left)
             y_proj = int(self.image_bounds.top) - y*self.xy_resolution[1]
 
-            # Get centroid and projcet it to 5070
+            # Get centroid and project it to 5070
             x_proj_centroid = agent.pos.centroid.x*self.xy_resolution[0] + int(self.image_bounds.left)
             y_proj_centroid = int(self.image_bounds.top) - agent.pos.centroid.y*self.xy_resolution[1]
 
             ## Calc local variables
             local_cover, nearby_agents = landscape.get_nearby_items(agent, model, sense_range=200)
             suitable = behaviour.location_suitability(local_cover,nearby_agents, params)
-            nearby_agents_ids = [agent.id for agent in nearby_agents]
-            # log.debug(f'Nearby agents: {nearby_agents}')
-            agent_cfg = agent.get_cfg
+            
+            # Temp Data to add to csv for error checking
+            if grid_location is not None:
+                canopy_cover = self.canopy_layer.get(grid_location).item()
+            else:
+                canopy_cover = -1
+
             self.agent_logger.log_row(self.tick_time.isoformat(),
                                       agent.uuid, 
-                                      agent.uid, # Should have rank info?
+                                      agent.uid, 
+                                      agent.uid[2], #rank
+                                      agent.is_male,
+                                      agent.is_fawn,
+                                      agent.has_homerange,
                                       x_proj,
                                       y_proj,
                                       x_proj_centroid,
                                       y_proj_centroid, 
                                       suitable, 
-                                      agent.behaviour_state)
+                                      agent.behaviour_state, 
+                                      agent.disease_state,
+                                      #Temp data
+                                      str(grid_location),
+                                      canopy_cover,
+                                      )
 
         self.agent_logger.write()
         return
