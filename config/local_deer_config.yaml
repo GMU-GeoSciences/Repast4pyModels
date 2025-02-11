@@ -4,28 +4,24 @@ sim:
 geo: 
   # Envelope for grid/continuous space for the simulation. Must be integers
   # Also the path to the geotiff to use.
-  # x_min: 1615000
-  # x_max: 1630000
-  # y_min: 1960000
-  # y_max: 1970000
 
-  # x_min: 1613845
-  # x_max: 1637295
-  # y_min: 1950165
-  # y_max: 1973355
+  x_min: 1613845
+  x_max: 1637295
+  y_min: 1950165
+  y_max: 1973355
 
-  x_min: 1616289
-  x_max: 1622764
-  y_min: 1960591
-  y_max: 1965355 
+  # x_min: 1616289
+  # x_max: 1622764
+  # y_min: 1960591
+  # y_max: 1965355 
 
-  tiff_path: ./input/images/2019_CONUS_Canopy.tiff #in relation to project root dir
-  buffer_size: 10 # max number of pixels that an agent can move in a single tick
+  tiff_path: ./input/images/2019_CONUS_Canopy_fake.tiff #in relation to project root dir
+  buffer_size: 50 # max number of pixels that an agent can move in a single tick
  
 time: 
   start_time: "2000-01-01T00:00:00" #ISO 8601 Timestamp
   hours_per_tick: 1
-  end_tick: 500
+  end_tick: 100
  
 logging:
   # loglevel: DEBUG # can be DEBUG, INFO, WARNING, ERROR
@@ -39,7 +35,7 @@ logging:
 
 # https://columbiaassociation.org/open-space/oh-deer-tips-and-tricks-for-living-with-deer-in-columbia/#:~:text=The%20Howard%20County%20Department%20of,15%20deer%20per%20square%20mile.
 deer:
-  pop_size: 100 # Number of deer agents to simulate  
+  pop_size: 500 # Number of deer agents to simulate  
   deer_vision_range: 400 # Number of meters deer can see. Used for finding nearby agents and home range suitability
 
 deer_control_vars:  # From https://www.researchgate.net/publication/363077733_The_effect_of_landscape_transmission_mode_and_social_behavior_on_disease_transmission_Simulating_the_transmission_of_chronic_wasting_disease_in_white-tailed_deer_Odocoileus_virginianus_populations_usi

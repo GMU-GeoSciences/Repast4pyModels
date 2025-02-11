@@ -47,8 +47,19 @@ else
 endif
 	rm build
 
+
+# Profile code using cProfile
+profile: env
+ifeq ($(DEV_NAME), hopper)
+	./make-scripts/hopper_profile.sh
+else
+	./make-scripts/local_profile.sh
+endif
+	rm build
+
+
 # Clean up everything; remove docker image, remove raster files
-clean: env
+clean: env build
 ifeq ($(DEV_NAME), hopper)
 	./make-scripts/hopper_cleanup.sh
 else

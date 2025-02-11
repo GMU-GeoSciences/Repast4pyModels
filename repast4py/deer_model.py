@@ -386,10 +386,6 @@ class Model:
         for agent in self.contexts['deer'].agents():
             cont_location = self.shared_space.get_location(agent)
             grid_location = self.grid.get_location(agent) 
-            if grid_location is not None:
-                canopy_cover = self.canopy_layer.get(grid_location).item()
-            else:
-                canopy_cover = -1
 
             if cont_location is not None:
                 x = cont_location.x  # There is a small offset between raster values and agent locations shown in QGIS
@@ -409,11 +405,16 @@ class Model:
             ## Calc local variables
             local_cover, nearby_agents = landscape.get_nearby_items(agent, model, sense_range=200)
             suitable = behaviour.location_suitability(local_cover,nearby_agents, params)
-            nearby_agents_ids = [agent.id for agent in nearby_agents]
-            agents_nearby = len(nearby_agents_ids) > 0
+            
+            # Temp Data to add to csv for error checking
+            if grid_location is not None:
+                canopy_cover = self.canopy_layer.get(grid_location).item()
+            else:
+                canopy_cover = -1
+
             self.agent_logger.log_row(self.tick_time.isoformat(),
                                       agent.uuid, 
-                                      agents_nearby, 
+                                      agent.uid, 
                                       agent.uid[2], #rank
                                       agent.is_male,
                                       agent.is_fawn,
@@ -426,8 +427,8 @@ class Model:
                                       agent.behaviour_state, 
                                       agent.disease_state,
                                       #Temp data
-                                      agent.disease_end_datetime,
-                                      agents_nearby,
+                                      str(grid_location),
+                                      canopy_cover,
                                       )
 
         self.agent_logger.write()

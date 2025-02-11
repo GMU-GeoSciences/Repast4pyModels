@@ -3,6 +3,7 @@ from owslib.wcs import WebCoverageService
 import rasterio
 from rasterio.plot import reshape_as_image
 from rasterio.mask import mask
+from rasterio.transform import array_bounds
 import os
 import shapely
 # import pandas as pd
@@ -37,6 +38,13 @@ def fetch_img(WCS_Info):
     of interest.
     ''' 
     if os.path.isfile(WCS_Info.path):
+        ################################
+        # TODO: This code doesn't give the correct bounding box out... 
+        # There might be a pixel offset in x and y dimensions
+        # Can maybe fix it but it's not a big deal right now...
+        # https://gis.stackexchange.com/questions/490186/get-correct-bounds-of-clipped-geotiff-using-rastio  
+        ################################
+        
         log.info('GeoTiff already exists, going to take snippet from it...') 
         with rasterio.open(WCS_Info.path, 'r') as ds:
             xy_resolution = ds.res
@@ -45,16 +53,20 @@ def fetch_img(WCS_Info):
                                         WCS_Info.bounds[2], 
                                         WCS_Info.bounds[1], 
                                         WCS_Info.bounds[3])
-            arr = reshape_as_image(mask(ds, shapes = [bbox], crop = True)[0]) 
+            arr, transform = mask(ds, shapes = [bbox], crop = True)
             # Cropped Image Bounds
+            image_bounds = array_bounds(arr.shape[-2], arr.shape[-1], transform)
+
             image_bounds = rasterio.coords.BoundingBox(
-                                        WCS_Info.bounds[0], 
-                                        WCS_Info.bounds[2], 
-                                        WCS_Info.bounds[1], 
-                                        WCS_Info.bounds[3])
+                                        image_bounds[0], 
+                                        image_bounds[2], 
+                                        image_bounds[1], 
+                                        image_bounds[3])
+            
+            arr = reshape_as_image(arr)
              
     else:
-        log.info('GeoTiff does not exist, going to take download it...')
+        log.info('GeoTiff does not exist, going to download it...')
 
         wcs_service = WebCoverageService(WCS_Info.wcs_url,
                                 version=WCS_Info.wcs_version)
