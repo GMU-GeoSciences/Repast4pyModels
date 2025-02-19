@@ -21,7 +21,7 @@ geo:
 time: 
   start_time: "2000-01-01T00:00:00" #ISO 8601 Timestamp
   hours_per_tick: 1
-  end_tick: 100
+  end_tick: 24
  
 logging:
   # loglevel: DEBUG # can be DEBUG, INFO, WARNING, ERROR
@@ -35,7 +35,7 @@ logging:
 
 # https://columbiaassociation.org/open-space/oh-deer-tips-and-tricks-for-living-with-deer-in-columbia/#:~:text=The%20Howard%20County%20Department%20of,15%20deer%20per%20square%20mile.
 deer:
-  pop_size: 500 # Number of deer agents to simulate  
+  pop_size: 100 # Number of deer agents to simulate  
   deer_vision_range: 400 # Number of meters deer can see. Used for finding nearby agents and home range suitability
 
 deer_control_vars:  # From https://www.researchgate.net/publication/363077733_The_effect_of_landscape_transmission_mode_and_social_behavior_on_disease_transmission_Simulating_the_transmission_of_chronic_wasting_disease_in_white-tailed_deer_Odocoileus_virginianus_populations_usi

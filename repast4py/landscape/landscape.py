@@ -36,6 +36,14 @@ def get_nearby_agents(model, this_agent, i,j):
             agents_in_cell.append(a)
     return agents_in_cell
 
+def vectorised(model, agent, i, j):
+    local_agents = get_nearby_agents(model, agent, i,j) 
+    local_array =  get_pixel_value(model.canopy_layer, i,j)
+
+    ## Flatten
+
+    return local_array, local_agents
+
 def get_nearby_items(agent, model, sense_range = 100):
     '''
     Given a point, and an array, get the information for the local space.
@@ -57,17 +65,19 @@ def get_nearby_items(agent, model, sense_range = 100):
      
     x_es = range(int(location.x) - grid_range, int(location.x) + grid_range)
     y_es = range(int(location.y) - grid_range, int(location.y) + grid_range)
+    xx_es, yy_es = np.meshgrid(x_es, y_es)
 
     local_agents = []
     local_array = np.zeros(shape=(len(x_es), len(y_es)), dtype=int) # Empty array for sense_range pixels around the agent
+    local_array, local_agents = vectorised(model, agent, xx_es, yy_es)
     
     # TODO: This could probably be sped up using map() or anything other than
     # a nested for loop...
     #https://medium.com/@nirmalya.ghosh/13-ways-to-speedup-python-loops-e3ee56cd6b73
-    for i in x_es:
-        for j in y_es: 
-            local_agents.extend(get_nearby_agents(model, agent, i,j)) 
-            local_array[i - min(x_es), j - min(y_es)] = get_pixel_value(model.canopy_layer, i,j)
+    # for i in x_es:
+    #     for j in y_es: 
+    #         local_agents.extend(get_nearby_agents(model, agent, i,j)) 
+    #         local_array[i - min(x_es), j - min(y_es)] = get_pixel_value(model.canopy_layer, i,j)
 
     return local_array, local_agents
 

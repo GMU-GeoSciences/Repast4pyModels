@@ -37,14 +37,7 @@ def fetch_img(WCS_Info):
     If the file already exists then just take a window snippet out of it for the area
     of interest.
     ''' 
-    if os.path.isfile(WCS_Info.path):
-        ################################
-        # TODO: This code doesn't give the correct bounding box out... 
-        # There might be a pixel offset in x and y dimensions
-        # Can maybe fix it but it's not a big deal right now...
-        # https://gis.stackexchange.com/questions/490186/get-correct-bounds-of-clipped-geotiff-using-rastio  
-        ################################
-        
+    if os.path.isfile(WCS_Info.path):  
         log.info('GeoTiff already exists, going to take snippet from it...') 
         with rasterio.open(WCS_Info.path, 'r') as ds:
             xy_resolution = ds.res

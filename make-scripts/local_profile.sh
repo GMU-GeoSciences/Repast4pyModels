@@ -8,6 +8,6 @@ echo "== Profiling Repast Script... =="
 echo "================================" 
 
 echo "Running repast4py script in local docker env..."  
-docker run -it --rm --name repast-local-docker -v "$PWD":/usr/src/myapp -w /usr/src/myapp repast-local-docker mpiexec -l -np 5 python -m cProfile -o ./profile.prof ./repast4py/deer_model.py ./config/local_deer_config.yaml
+docker run -it --rm --name repast-local-docker -v "$PWD":/usr/src/myapp -w /usr/src/myapp repast-local-docker mpiexec -l -np 6 python -m cProfile -o ./profile.prof ./repast4py/deer_model.py ./config/local_deer_config.yaml
 # https://stackoverflow.com/questions/33503176/profile-parallelized-python-script-with-mpi4py
 # mpiexec -l -np 4 python -m cProfile ./simple-io.py doodad
