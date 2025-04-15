@@ -404,7 +404,7 @@ class Model:
 
             ## Calc local variables
             local_cover, nearby_agents = landscape.get_nearby_items(agent, model, sense_range=200)
-            suitable = behaviour.location_suitability(local_cover,nearby_agents, params)
+            suitable = behaviour.location_suitability(local_cover, params)
             
             # Temp Data to add to csv for error checking
             if grid_location is not None:

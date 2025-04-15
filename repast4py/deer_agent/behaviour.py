@@ -53,11 +53,6 @@ def check_fawn():
     Get location of child and it's status. 
     '''
 
-def check_disease():
-    '''
-    Check if sick, or recovered, and whether other nearby agents are sick.
-    '''
-
 def enter_explore_state(agent):
     '''
     when exploring the agent maintains it's centroid, changes it's movement angle params
@@ -111,7 +106,7 @@ def establish_homerange(agent):
     return agent
 
 
-def location_suitability(local_array, nearby_agents, params):
+def location_suitability(local_array, params):
     '''
     Check whether local conditions are good for the deer agent.
     '''
@@ -121,6 +116,46 @@ def location_suitability(local_array, nearby_agents, params):
 
     return good_pixels > min_count
 
+def calculate_explore_chance(time_of_year, params):
+    '''
+    Given the params and a tick duration calculate whether an animal will enter 
+    explore state. 
+
+    # Probability of starting to explore is calculated as the
+    # the probability of the portion of deer not exploring as a function of the number of failed "start exploring" 
+    # steps and explore duration.
+
+    P(Not Exploring) = (1 - P(Start_Exploring))^(1/ExploreDuration)
+    So if at any given time 70% of deer are not exploring 
+    P(Start_Exploring) = 1 - (0.7)^(ExploreDuration)
+    '''
+    # sometimes start randomly exploring
+    if time_of_year == time_functions.DeerSeasons.FAWNING:
+        explore_chance = float(params['deer_control_vars']['explore_chance']['fawning'])
+    if time_of_year == time_functions.DeerSeasons.GESTATION:
+        explore_chance = float(params['deer_control_vars']['explore_chance']['gestation']) 
+    if time_of_year == time_functions.DeerSeasons.PRERUT:
+        explore_chance = float(params['deer_control_vars']['explore_chance']['prerut']) 
+    if time_of_year == time_functions.DeerSeasons.RUT:
+        explore_chance = float(params['deer_control_vars']['explore_chance']['rut']) 
+    min_duration = float(params['deer_control_vars']['explore_chance']['duration']['min'])
+    max_duration = float(params['deer_control_vars']['explore_chance']['duration']['max'])
+    hours_per_tick = float(params['time']['hours_per_tick'])
+    average_explore_ticks= (min_duration + (max_duration - min_duration)/2)/hours_per_tick
+
+    calculated_explore_chance = 1 - (1 - explore_chance)**(1/average_explore_ticks)
+    
+    return rndm.random() < calculated_explore_chance
+
+
+def social_suitability(agent, nearby_agents, params):
+    '''
+    Check whether nearby other agents are too close... or too far?
+    '''
+    for other_agent in nearby_agents:
+        pass
+
+    return True
 
                     #########################
                     ## B E H A V I O U R S ##
@@ -135,23 +170,13 @@ def calculate_next_state(agent, local_cover, nearby_agents, params):
     '''  
     time_of_year = time_functions.check_time_of_year(agent.timestamp)
     agent = time_functions.check_age(agent, params) 
-    good_hr = location_suitability(local_cover, nearby_agents, params) 
+    good_hr = location_suitability(local_cover, params)
+    good_neighbours = social_suitability(agent, nearby_agents, params)
 
     ############### NORMAL ############### 
     if agent.behaviour_state == Behaviour_State.NORMAL:
         if agent.has_homerange:
-            # sometimes start randomly exploring
-            if time_of_year == time_functions.DeerSeasons.FAWNING:
-                explore_chance = float(params['deer_control_vars']['explore_chance']['fawning'])
-            if time_of_year == time_functions.DeerSeasons.GESTATION:
-                explore_chance = float(params['deer_control_vars']['explore_chance']['gestation']) 
-            if time_of_year == time_functions.DeerSeasons.PRERUT:
-                explore_chance = float(params['deer_control_vars']['explore_chance']['prerut']) 
-            if time_of_year == time_functions.DeerSeasons.RUT:
-                explore_chance = float(params['deer_control_vars']['explore_chance']['rut']) 
-            
-            if (rndm.random() < explore_chance):
-                # Agent decides to go exploring
+            if calculate_explore_chance(time_of_year, params): 
                 agent = enter_explore_state(agent)
                 return agent
 

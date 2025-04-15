@@ -69,15 +69,15 @@ def get_nearby_items(agent, model, sense_range = 100):
 
     local_agents = []
     local_array = np.zeros(shape=(len(x_es), len(y_es)), dtype=int) # Empty array for sense_range pixels around the agent
-    local_array, local_agents = vectorised(model, agent, xx_es, yy_es)
+    # local_array, local_agents = vectorised(model, agent, xx_es, yy_es)
     
     # TODO: This could probably be sped up using map() or anything other than
     # a nested for loop...
     #https://medium.com/@nirmalya.ghosh/13-ways-to-speedup-python-loops-e3ee56cd6b73
-    # for i in x_es:
-    #     for j in y_es: 
-    #         local_agents.extend(get_nearby_agents(model, agent, i,j)) 
-    #         local_array[i - min(x_es), j - min(y_es)] = get_pixel_value(model.canopy_layer, i,j)
+    for i in x_es:
+        for j in y_es: 
+            local_agents.extend(get_nearby_agents(model, agent, i,j)) 
+            local_array[i - min(x_es), j - min(y_es)] = get_pixel_value(model.canopy_layer, i,j)
 
     return local_array, local_agents
 
