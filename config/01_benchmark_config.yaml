@@ -72,3 +72,10 @@ deer_control_vars:  # From https://www.researchgate.net/publication/363077733_Th
     max: 100
     min: 50
     suitability_threshold: 60 
+  disease:
+  # Susceptible > Infected > Recovered/Dead > Susceptible
+    infectious_start_rate: 0.1 # portion of starting population that is infectious 
+    infection_chance: 0.10 # Chance that agent will be infected upon single contact with infected agent. 
+    infection_duration: (5,1) # normal(mean, stddev) Time after infection, until agent becomes recovered
+    immunity_duration: (5,1) # normal(mean, stddev) Time after recovery, until agent loses immunity 
+ 
