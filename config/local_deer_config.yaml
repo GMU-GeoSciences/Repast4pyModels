@@ -1,31 +1,29 @@
+##########################
+# Hopper SIM Config
+# This config runs a sim that cover the entire HowardCounty, for a couple thousand deer, for 6 months.
+##########################
 sim:
  environment: local # Can be "hopper" or "local". Changes some of the logging to make sense for big sims.
 
 geo: 
   # Envelope for grid/continuous space for the simulation. Must be integers
-  # Also the path to the geotiff to use.
-
-  x_min: 1613845
-  x_max: 1637295
-  y_min: 1950165
-  y_max: 1973355
-
-  # x_min: 1616289
-  # x_max: 1622764
-  # y_min: 1960591
-  # y_max: 1965355 
-
-  tiff_path: ./input/images/2019_CONUS_Canopy_fake.tiff #in relation to project root dir
+  # Howard County:
+  x_min: 1595916
+  x_max: 1641113
+  y_min: 1952151
+  y_max: 1979392
+ 
+  tiff_path: ./input/images/2019_CONUS_Canopy.tiff #in relation to project root dir
   buffer_size: 50 # max number of pixels that an agent can move in a single tick
  
 time: 
   start_time: "2000-01-01T00:00:00" #ISO 8601 Timestamp
   hours_per_tick: 1
-  end_tick: 100
+  end_tick: 4400
  
 logging:
-  # loglevel: DEBUG # can be DEBUG, INFO, WARNING, ERROR
-  loglevel: INFO
+  loglevel: DEBUG # can be DEBUG, INFO, WARNING, ERROR
+  # loglevel: INFO
   # loglevel: WARNING
   # loglevel: ERROR
   agent_log_file: './output/agent_log.csv'
@@ -35,7 +33,7 @@ logging:
 
 # https://columbiaassociation.org/open-space/oh-deer-tips-and-tricks-for-living-with-deer-in-columbia/#:~:text=The%20Howard%20County%20Department%20of,15%20deer%20per%20square%20mile.
 deer:
-  pop_size: 500 # Number of deer agents to simulate  
+  pop_size: 50 # Number of deer agents to simulate  
   deer_vision_range: 400 # Number of meters deer can see. Used for finding nearby agents and home range suitability
 
 deer_control_vars:  # From https://www.researchgate.net/publication/363077733_The_effect_of_landscape_transmission_mode_and_social_behavior_on_disease_transmission_Simulating_the_transmission_of_chronic_wasting_disease_in_white-tailed_deer_Odocoileus_virginianus_populations_usi
@@ -80,13 +78,10 @@ deer_control_vars:  # From https://www.researchgate.net/publication/363077733_Th
     suitability_threshold: 80
   disease:
   # Susceptible > Infected > Recovered/Dead > Susceptible
-    infectious_start_rate: 0.5 # portion of starting population that is infectious 
-    
-    infection_chance: 0.00 # Chance that agent will be infected upon single contact with infected agent. 
+    infectious_start_rate: 0.1 # portion of starting population that is infectious 
+    infection_chance: 0.10 # Chance that agent will be infected upon single contact with infected agent. 
     infection_duration: (5,1) # normal(mean, stddev) Time after infection, until agent becomes recovered
     immunity_duration: (5,1) # normal(mean, stddev) Time after recovery, until agent loses immunity 
-# Fairfax county 40 to 100 deer per square mile
-# Howard County 75 deer per square mile
-# Healthy pop is 5 to 15 per square mile 
+ 
 
 
