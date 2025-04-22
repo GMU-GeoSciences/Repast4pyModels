@@ -26,9 +26,9 @@ logging:
   # loglevel: INFO
   # loglevel: WARNING
   # loglevel: ERROR
-  agent_log_file: './output/agent_log.csv'
-  model_meta_file: './output/agent_meta.json'
-  gpkg_log_file: './output/agents.gpkg'
+  agent_log_file: './output/bench_log.csv'
+  model_meta_file: './output/bench_meta_02.json'
+  gpkg_log_file: './output/bench.gpkg'
   centroid_log_file: './output/centroids.gpkg'
 
 # https://columbiaassociation.org/open-space/oh-deer-tips-and-tricks-for-living-with-deer-in-columbia/#:~:text=The%20Howard%20County%20Department%20of,15%20deer%20per%20square%20mile.
