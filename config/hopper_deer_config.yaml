@@ -22,8 +22,8 @@ time:
   end_tick: 4400
  
 logging:
-  loglevel: DEBUG # can be DEBUG, INFO, WARNING, ERROR
-  # loglevel: INFO
+  # loglevel: DEBUG # can be DEBUG, INFO, WARNING, ERROR
+  loglevel: INFO
   # loglevel: WARNING
   # loglevel: ERROR
   agent_log_file: './output/agent_log.csv'
