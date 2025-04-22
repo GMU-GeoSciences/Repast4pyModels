@@ -7,7 +7,7 @@
 #SBATCH --error=/home/%u/Repast4pyModels/output/%x-%N-%j.err   ##filename of the error output
 #SBATCH --nodes=2  ##number of nodes to use
 #SBATCH --ntasks=80  ##number of tasks to run
-#SBATCH --time=0-1:00:00  ##time for analysis (day-hour:min:sec)
+#SBATCH --time=0-2:00:00  ##time for analysis (day-hour:min:sec)
 #SBATCH --cpus-per-task=1  ##the number of threads the code will use
 #SBATCH --mem=20GB  ##memory allocation per node
 #SBATCH --partition normal  ##the partition to run in
