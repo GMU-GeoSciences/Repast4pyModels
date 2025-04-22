@@ -19,7 +19,7 @@ geo:
 time: 
   start_time: "2000-01-01T00:00:00" #ISO 8601 Timestamp
   hours_per_tick: 1
-  end_tick: 100
+  end_tick: 1000
  
 logging:
   loglevel: DEBUG # can be DEBUG, INFO, WARNING, ERROR

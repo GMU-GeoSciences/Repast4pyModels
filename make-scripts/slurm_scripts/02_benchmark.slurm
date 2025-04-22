@@ -5,7 +5,7 @@
 #SBATCH --job-name=benchmark_02   ##name that will show up in the queue
 #SBATCH --output=/home/%u/Repast4pyModels/output/%x-%N-%j.out   ##filename of the output
 #SBATCH --error=/home/%u/Repast4pyModels/output/%x-%N-%j.err   ##filename of the error output
-#SBATCH --nodes=1  ##number of nodes to use
+#SBATCH --nodes=2  ##number of nodes to use
 #SBATCH --ntasks=40  ##number of tasks to run
 #SBATCH --time=0-1:00:00  ##time for analysis (day-hour:min:sec)
 #SBATCH --cpus-per-task=1  ##the number of threads the code will use
