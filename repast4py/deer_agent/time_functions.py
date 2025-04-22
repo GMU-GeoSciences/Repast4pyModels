@@ -50,7 +50,7 @@ def is_season(timestamp, deer_season):
                                     month = deer_season.end_month,
                                     day = deer_season.end_day)
     
-    return start_date <= date_stamp < end_date
+    return start_date <= date_stamp <= end_date
 
 def check_age(agent, params):
     '''
@@ -107,8 +107,7 @@ def check_time_of_year(input_datetime):
             return time_of_year
         else: 
             time_of_year = None
-            log.warning(f'Time of year is unknown: {input_datetime}!')
-            log.warning(f'Time of year is unknown: {input_datetime}!')
+            log.warning(f'Time of year is unknown: {input_datetime}!') 
             return time_of_year
 
 def increment_timers(agent):

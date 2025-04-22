@@ -51,7 +51,7 @@ def become_recovered(agent, params):
     '''
     What happens when the agent becomes recovered.
     '''
-    log.info(f'    - Recovered! {agent.uuid}')
+    log.debug(f'    - Recovered! {agent.uuid}')
 
     random_params = ast.literal_eval(params['deer_control_vars']['disease']['immunity_duration'])
     immunity_days = rndm.gauss(random_params[0], random_params[1])
@@ -65,7 +65,7 @@ def become_susceptible(agent, params):
     '''
     What happens when the agent becomes susceptible.
     ''' 
-    log.info(f'    - Susceptible! {agent.uuid}')
+    log.debug(f'    - Susceptible! {agent.uuid}')
 
     agent.disease_end_datetime = agent.timestamp
     agent.disease_state = Disease_State.SUSCEPTIBLE
@@ -80,7 +80,7 @@ def check_infection_chance(agent, nearby_agents_list, params):
     for other_agent in nearby_agents_list:
         if other_agent.disease_state == Disease_State.INFECTED:
             if rndm.random() < infection_chance:
-                log.info(f'    - Infected! {agent.uuid}')
+                log.debug(f'    - Infected! {agent.uuid}')
                 return True
     return False
 

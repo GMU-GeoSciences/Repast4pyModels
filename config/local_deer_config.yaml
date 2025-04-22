@@ -17,9 +17,9 @@ geo:
   buffer_size: 50 # max number of pixels that an agent can move in a single tick
  
 time: 
-  start_time: "2000-01-01T00:00:00" #ISO 8601 Timestamp
+  start_time: "2000-05-10T00:00:00" #ISO 8601 Timestamp
   hours_per_tick: 1
-  end_tick: 4400
+  end_tick: 1000
  
 logging:
   loglevel: DEBUG # can be DEBUG, INFO, WARNING, ERROR
