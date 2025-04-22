@@ -28,10 +28,11 @@ time:
   hours_per_tick: 1
   end_tick: 100
  
+# https://columbiaassociation.org/open-space/oh-deer-tips-and-tricks-for-living-with-deer-in-columbia/#:~:text=The%20Howard%20County%20Department%20of,15%20deer%20per%20square%20mile.
 deer:
-  pop_size: 800 # Number of deer agents to simulate
-  disease_starting_ratio: 0 # What ratio of deer start sim being sick. 
- 
+  pop_size: 5000 # Number of deer agents to simulate  
+  deer_vision_range: 400 # Number of meters deer can see. Used for finding nearby agents and home range suitability
+
 deer_control_vars:  # From https://www.researchgate.net/publication/363077733_The_effect_of_landscape_transmission_mode_and_social_behavior_on_disease_transmission_Simulating_the_transmission_of_chronic_wasting_disease_in_white-tailed_deer_Odocoileus_virginianus_populations_usi
   male_disperse_prob: 0.7 # (Hawkins et al., 1971; Nixon et al., 2007, 1994; Rosenberry et al., 1999) 
   female_disperse_prob: 0.2 # (Hawkins et al., 1971; Nixon et al., 2007, 1994; Rosenberry et al., 1999) 
