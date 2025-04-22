@@ -23,7 +23,7 @@ time:
  
 logging:
   # loglevel: DEBUG # can be DEBUG, INFO, WARNING, ERROR
-  loglevel: INF
+  loglevel: INFO
   # loglevel: WARNING
   # loglevel: ERROR
   agent_log_file: './output/agent_log.csv'
