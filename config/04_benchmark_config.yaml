@@ -1,41 +1,42 @@
-#################
-## CONFIG FILE ##
-#################
-# This is for controlling the repast4py deer model. 
-# Check the github repo for more info on this file
+##########################
+# Hopper SIM Config
+# This config runs a sim that cover the entire HowardCounty, for a couple thousand deer, for 6 months.
+##########################
+sim:
+ environment: local # Can be "hopper" or "local". Changes some of the logging to make sense for big sims.
 
-logging:
-  # loglevel: DEBUG # can be DEBUG, INFO, WARNING, ERROR
-  loglevel: INFO
-  # loglevel: WARNING
-  # loglevel: ERROR
-  agent_log_file: './output/experiments/agent_number/benchmark_01.csv'
-  model_meta_file: './output/experiments/agent_number/benchmark_meta_01.json'
- 
 geo: 
   # Envelope for grid/continuous space for the simulation. Must be integers
-  # Also the path to the geotiff to use.
-  x_min: 1613845
-  x_max: 1637295
-  y_min: 1950165
-  y_max: 1973355
+  # Howard County:
+  x_min: 1595916
+  x_max: 1641113
+  y_min: 1952151
+  y_max: 1979392
  
-  tiff_path: ./input/images/2019_CONUS_Canopy.tiff #in relation to project root dir
-  buffer_size: 10 # max number of pixels that an agent can move in a single tick
+  tiff_path: ./input/images/2019_CONUS_Canopy_fake.tiff #in relation to project root dir
+  buffer_size: 50 # max number of pixels that an agent can move in a single tick
  
 time: 
   start_time: "2000-01-01T00:00:00" #ISO 8601 Timestamp
   hours_per_tick: 1
   end_tick: 100
  
+logging:
+  loglevel: DEBUG # can be DEBUG, INFO, WARNING, ERROR
+  # loglevel: INFO
+  # loglevel: WARNING
+  # loglevel: ERROR
+  agent_log_file: './output/agent_log.csv'
+  model_meta_file: './output/agent_meta.json'
+  gpkg_log_file: './output/agents.gpkg'
+  centroid_log_file: './output/centroids.gpkg'
+
 # https://columbiaassociation.org/open-space/oh-deer-tips-and-tricks-for-living-with-deer-in-columbia/#:~:text=The%20Howard%20County%20Department%20of,15%20deer%20per%20square%20mile.
 deer:
   pop_size: 5000 # Number of deer agents to simulate  
   deer_vision_range: 400 # Number of meters deer can see. Used for finding nearby agents and home range suitability
 
 deer_control_vars:  # From https://www.researchgate.net/publication/363077733_The_effect_of_landscape_transmission_mode_and_social_behavior_on_disease_transmission_Simulating_the_transmission_of_chronic_wasting_disease_in_white-tailed_deer_Odocoileus_virginianus_populations_usi
-  male_disperse_prob: 0.7 # (Hawkins et al., 1971; Nixon et al., 2007, 1994; Rosenberry et al., 1999) 
-  female_disperse_prob: 0.2 # (Hawkins et al., 1971; Nixon et al., 2007, 1994; Rosenberry et al., 1999) 
   explore_chance:
     gestation: 0.32
     fawning: 0.08
@@ -45,7 +46,7 @@ deer_control_vars:  # From https://www.researchgate.net/publication/363077733_Th
       min: 12 
       max: 24 #Hours
   gestation:
-    min: 187 #Daysx
+    min: 187 #Days
     max: 222 #Days
     fawn_prob:
       one: 0.25
@@ -65,14 +66,16 @@ deer_control_vars:  # From https://www.researchgate.net/publication/363077733_Th
   annual_mortality:
     female: 0.2
     male: 0.4
-    fawn: 0.2 
+    fawn: 0.2
   age:
     fawn_to_adult: 360 # days. Fawn grows up
     adult_max: 100000 # days. Max age of agents
+    male_disperse_prob: 0.7 # (Hawkins et al., 1971; Nixon et al., 2007, 1994; Rosenberry et al., 1999) 
+    female_disperse_prob: 0.2 # (Hawkins et al., 1971; Nixon et al., 2007, 1994; Rosenberry et al., 1999) 
   homerange:
     max: 100
     min: 50
-    suitability_threshold: 60  
+    suitability_threshold: 80
   disease:
   # Susceptible > Infected > Recovered/Dead > Susceptible
     infectious_start_rate: 0.1 # portion of starting population that is infectious 
@@ -80,3 +83,5 @@ deer_control_vars:  # From https://www.researchgate.net/publication/363077733_Th
     infection_duration: (5,1) # normal(mean, stddev) Time after infection, until agent becomes recovered
     immunity_duration: (5,1) # normal(mean, stddev) Time after recovery, until agent loses immunity 
  
+
+
