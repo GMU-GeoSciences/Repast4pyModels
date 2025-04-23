@@ -143,12 +143,14 @@ def calculate_next_state(agent, local_cover, nearby_agents, params):
             # sometimes start randomly exploring
             if time_of_year == time_functions.DeerSeasons.FAWNING:
                 explore_chance = float(params['deer_control_vars']['explore_chance']['fawning'])
-            if time_of_year == time_functions.DeerSeasons.GESTATION:
+            elif time_of_year == time_functions.DeerSeasons.GESTATION:
                 explore_chance = float(params['deer_control_vars']['explore_chance']['gestation']) 
-            if time_of_year == time_functions.DeerSeasons.PRERUT:
+            elif time_of_year == time_functions.DeerSeasons.PRERUT:
                 explore_chance = float(params['deer_control_vars']['explore_chance']['prerut']) 
-            if time_of_year == time_functions.DeerSeasons.RUT:
+            elif time_of_year == time_functions.DeerSeasons.RUT:
                 explore_chance = float(params['deer_control_vars']['explore_chance']['rut']) 
+            else:
+                log.warning(f'Cannot find explore_chance for time_of_year == {time_of_year}')
             
             if (rndm.random() < explore_chance):
                 # Agent decides to go exploring
