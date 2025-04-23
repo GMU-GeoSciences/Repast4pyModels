@@ -74,8 +74,8 @@ deer_control_vars:  # From https://www.researchgate.net/publication/363077733_Th
     female_disperse_prob: 0.2 # (Hawkins et al., 1971; Nixon et al., 2007, 1994; Rosenberry et al., 1999) 
   homerange:
     max: 100
-    min: 50
-    suitability_threshold: 80
+    min: 70
+    suitability_threshold: 90
   disease:
   # Susceptible > Infected > Recovered/Dead > Susceptible
     infectious_start_rate: 0.1 # portion of starting population that is infectious 

@@ -75,7 +75,7 @@ deer_control_vars:  # From https://www.researchgate.net/publication/363077733_Th
   homerange:
     max: 100
     min: 50
-    suitability_threshold: 80
+    suitability_threshold: 90
   disease:
   # Susceptible > Infected > Recovered/Dead > Susceptible
     infectious_start_rate: 0.1 # portion of starting population that is infectious 
