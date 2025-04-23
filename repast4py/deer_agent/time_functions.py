@@ -107,8 +107,9 @@ def check_time_of_year(input_datetime):
             return time_of_year
         else: 
             time_of_year = None
-            log.warning(f'Time of year is unknown: {input_datetime}!') 
-            return time_of_year
+    
+    log.warning(f'Time of year is unknown: {input_datetime}!') 
+    return time_of_year
 
 def increment_timers(agent):
     '''
