@@ -80,6 +80,8 @@ class Position_Vector:
     heading_to_centroid: float = 0.0
     distance_to_centroid: float = 0.0
     heading_from_prev: float = 0.0
+    step_distance = 0.0
+    turn_angle = 0.0
 
     def __post_init__(self):
         self.calc_dist_and_angle()
@@ -101,12 +103,12 @@ class Position_Vector:
         dx = self.centroid.x - self.current_point.x
         dy = self.centroid.y - self.current_point.y
         angle_radians = np.arctan2(dx, dy)
-        self.heading_to_centroid = np.rad2deg((angle_radians) % (2 * np.pi)) # Compass direction of travel between current_pos and centroid 
+        self.heading_to_centroid = (angle_radians) % (2 * np.pi) # Compass direction of travel between current_pos and centroid 
 
         dx = self.current_point.x - self.last_point.x
         dy = self.current_point.y - self.last_point.y
         angle_radians = np.arctan2(dx, dy)
-        self.heading_from_prev = np.rad2deg((angle_radians) % (2 * np.pi)) # Compass direction of travel between last_pos and current_pos 
+        self.heading_from_prev = (angle_radians) % (2 * np.pi) # Compass direction of travel between last_pos and current_pos 
     
     def calc_next_point(self, intial_point, step_distance, turn_angle):
         '''
@@ -117,8 +119,8 @@ class Position_Vector:
         '''
         self.calc_dist_and_angle()
 
-        next_x = intial_point.x + step_distance*np.sin(np.deg2rad(turn_angle))
-        next_y = intial_point.y + step_distance*np.cos(np.deg2rad(turn_angle))
+        next_x = intial_point.x + step_distance*np.sin(turn_angle)
+        next_y = intial_point.y + step_distance*np.cos(turn_angle)
         
         next_point = Point(next_x,next_y)
         return next_point
@@ -130,6 +132,7 @@ def step(agent, xy_resolution):
     '''
     step_params = choose_params(agent.timestamp)
     #TODO: Handle edge case of where xy_resolution[0] != xy_resolution[1]
+    # Why am I dividing by the resolution and why does it work?
     step_distance = calculate_random_step(step_params)/ xy_resolution[0] 
     step_angle = calculate_random_turn(agent)
     current_pos = agent.pos.current_point
@@ -177,24 +180,24 @@ def calculate_random_turn(agent):
         x = u_t 
         https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.wrapcauchy.html#scipy.stats.wrapcauchy
     ''' 
-    # TODO: Not using the distance from centroid?
+    # TODO: Not using the distance from centroid? 
     distance_from_centroid = agent.pos.distance_to_centroid
 
     if agent.behaviour_state == behaviour.Behaviour_State.NORMAL:
-        u_t = np.deg2rad(agent.pos.heading_to_centroid)
+        u_t = agent.pos.heading_to_centroid
         p_t = 0.5
         
     elif agent.behaviour_state == behaviour.Behaviour_State.DISPERSE:
-        u_t = np.deg2rad(agent.pos.heading_from_prev)
+        u_t = agent.pos.heading_from_prev
         p_t = 0.5
 
     elif agent.behaviour_state == behaviour.Behaviour_State.MATING:
-        u_t = np.deg2rad(agent.pos.heading_to_centroid)
+        u_t = agent.pos.heading_to_centroid
         p_t = 0.5
 
     elif agent.behaviour_state == behaviour.Behaviour_State.EXPLORE:
-        u_t = np.deg2rad(agent.pos.heading_from_prev)
+        u_t = agent.pos.heading_from_prev
         p_t = 0.5
     
     turn_angle = wrapcauchy.rvs(p_t, loc = u_t, scale = 1) 
-    return np.rad2deg(turn_angle)
+    return turn_angle

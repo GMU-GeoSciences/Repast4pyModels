@@ -68,7 +68,7 @@ class Deer_Config(object):
         last_point = movement.Point(self.current_x, self.current_y)
         current_point = movement.Point(self.current_x, self.current_y)
         centroid = movement.Point(self.current_x, self.current_y)
-        self.pos = movement.Position_Vector(last_point, current_point, centroid) 
+        self.pos = movement.Position_Vector(last_point, current_point, centroid, 0 ,0) 
     
     @classmethod
     def rand_factory(cls, x, y, params):
@@ -109,7 +109,7 @@ class Deer_Config(object):
             is_dead = False,
             pos = movement.Position_Vector(last_point = movement.Point(initial_x, initial_y),
                                         current_point = movement.Point(initial_x, initial_y),
-                                             centroid = movement.Point(initial_x, initial_y)),
+                                             centroid = movement.Point(initial_x, initial_y) ),
             timestamp = initial_timestamp,)
 
 def classFromArgs(className, argDict):
@@ -201,19 +201,19 @@ class Deer(core.Agent):
         return (self.uid,
                 cfg)
 
-    def calculate_next_pos(self, xy_resolution):
-        '''
-        Take last known position, home range centroid, and average_speed
-        and then calculate the location for the next step. Calculations 
-        change based on:
-         - behaviour state: foraging/resting travels less than others
-         - distance away from centroid: animals prefer to stay close to home range
-         - average speed: faster animals move faster... 
+    # def calculate_next_pos(self, xy_resolution):
+    #     '''
+    #     Take last known position, home range centroid, and average_speed
+    #     and then calculate the location for the next step. Calculations 
+    #     change based on:
+    #      - behaviour state: foraging/resting travels less than others
+    #      - distance away from centroid: animals prefer to stay close to home range
+    #      - average speed: faster animals move faster... 
 
-         Seeing as how this step is going to be run billions of times 
-         computational efficiency is important. 
-        ''' 
-        # CurrentX/Y should be the same as self.pos.current_point
-        # log.debug(f'Pos Vector: {self.pos}') 
-        next_position = movement.step(self, xy_resolution) 
-        return next_position.x, next_position.y
+    #      Seeing as how this step is going to be run billions of times 
+    #      computational efficiency is important. 
+    #     ''' 
+    #     # CurrentX/Y should be the same as self.pos.current_point
+    #     # log.debug(f'Pos Vector: {self.pos}') 
+    #     next_position = movement.step(self, xy_resolution) 
+    #     return next_position.x, next_position.y
