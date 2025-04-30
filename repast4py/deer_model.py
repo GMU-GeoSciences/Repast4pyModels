@@ -21,8 +21,8 @@ from datetime import datetime, timedelta
 
 # Local Files
 from deer_agent.deer_agent import Deer, Deer_Config
-from deer_agent import behaviour, movement, disease
-from landscape import fetch_img, landscape
+from deer_agent import behaviour, movement, disease, hmm_model
+from landscape import fetch_img, landscape 
 
 # model = None
 agent_tuple_cache = {}
@@ -142,8 +142,10 @@ class Model:
                                                    'Suitable Location', 
                                                    'Behaviour State', 
                                                    'Disease State',
-                                                   'Data1',
-                                                   'Data2',
+                                                   'grid_location',
+                                                   'NearbyOtherAgentCount',
+                                                   'step_distance',
+                                                   'turn_angle'
                                                    ])
  
         # Initialise agents
@@ -355,13 +357,20 @@ class Model:
             local_cover, nearby_agents = landscape.get_nearby_items(agent, model, sense_range = deer_vision_range)
             
             # Calculate disease state
-            agent = disease.check_disease_state(agent, nearby_agents, params)
+            agent = disease.check_disease_state(agent, nearby_agents, params, resolution = model.xy_resolution[0])
 
-            # Calculate next step
-            agent = behaviour.calculate_next_state(agent, local_cover, nearby_agents, params)
-            next_position = movement.step(agent, self.xy_resolution) 
+            if self.params['deer_control_vars']['movement_method']['method'] == 'HMM':
+                # #Use HMM Methods of states and steps
+                move_model = hmm_model.BehaviourState_HMM() 
+                next_position,  next_state = move_model.step(agent, local_cover, self.xy_resolution)
+                agent.behaviour_state = next_state 
             
-            # Implement next step
+            else: #Use DLD Methods of states and steps
+                # Calculate next step
+                agent = behaviour.calculate_next_state(agent, local_cover, nearby_agents, params)
+                next_position = movement.step(agent, self.xy_resolution) 
+                
+                # Implement next step
             self.move_agent(agent, next_position.x, next_position.y)
             if agent.is_dead:
                 dead_agents.append(agent)
@@ -403,7 +412,7 @@ class Model:
             y_proj_centroid = int(self.image_bounds.top) - agent.pos.centroid.y*self.xy_resolution[1]
 
             ## Calc local variables
-            local_cover, nearby_agents = landscape.get_nearby_items(agent, model, sense_range=200)
+            local_cover, nearby_agents = landscape.get_nearby_items(agent, model, sense_range=int(self.params['deer']['deer_vision_range']))
             suitable = behaviour.location_suitability(local_cover,nearby_agents, params)
             
             # Temp Data to add to csv for error checking
@@ -428,8 +437,9 @@ class Model:
                                       agent.disease_state,
                                       #Temp data
                                       str(grid_location),
-                                      canopy_cover,
-                                      )
+                                      len(nearby_agents),
+                                      agent.pos.step_distance*self.xy_resolution[0],
+                                      agent.pos.turn_angle)
 
         self.agent_logger.write()
         return

@@ -72,19 +72,23 @@ def become_susceptible(agent, params):
     return agent
 
 
-def check_infection_chance(agent, nearby_agents_list, params):
+def check_infection_chance(agent, nearby_agents_list, params, resolution):
     '''
     Check if this agent has been infected by other agents.
     '''
     infection_chance = params['deer_control_vars']['disease']['infection_chance']
+    infectious_range = float(params['deer_control_vars']['disease']['infectious_range'])
+    # log.info(f'   -- {len(nearby_agents_list)} nearby other agents...')
     for other_agent in nearby_agents_list:
-        if other_agent.disease_state == Disease_State.INFECTED:
-            if rndm.random() < infection_chance:
-                log.debug(f'    - Infected! {agent.uuid}')
-                return True
+        distance_to_other = np.sqrt(np.square(agent.pos.current_point.x - other_agent.pos.current_point.x) + np.square(agent.pos.current_point.y - other_agent.pos.current_point.y))*resolution
+        if (other_agent.disease_state == Disease_State.INFECTED): 
+            if rndm.random() < infection_chance: 
+                if distance_to_other < infectious_range:  
+                    # log.info(f'    - Agent {other_agent.uuid} infected {agent.uuid} from {int(distance_to_other)} m!')
+                    return True
     return False
 
-def check_disease_state(agent, nearby_agents_list, params):
+def check_disease_state(agent, nearby_agents_list, params, resolution):
     '''
     Check the timers, check how the agents disease state progresses 
     '''
@@ -93,7 +97,7 @@ def check_disease_state(agent, nearby_agents_list, params):
         # Only do disease checks if enough time has passed since last state change: 
         if agent.disease_state == Disease_State.SUSCEPTIBLE:
             # Check nearby other agents
-            if check_infection_chance(agent, nearby_agents_list, params):
+            if check_infection_chance(agent, nearby_agents_list, params, resolution):
                 agent = become_infected(agent, params)
             return agent 
         
