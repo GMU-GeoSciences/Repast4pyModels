@@ -1,10 +1,7 @@
 ##########################
 # Hopper SIM Config
 # This config runs a sim that cover the entire HowardCounty, for a couple thousand deer, for 6 months.
-##########################
-sim:
- environment: local # Can be "hopper" or "local". Changes some of the logging to make sense for big sims.
-
+########################## 
 geo: 
   # Envelope for grid/continuous space for the simulation. Must be integers
   # Howard County:
@@ -13,35 +10,38 @@ geo:
   y_min: 1952151
   y_max: 1979392
  
-  tiff_path: ./input/images/2019_CONUS_Canopy_fake.tiff #in relation to project root dir
+  tiff_path: ./input/images/2019_CONUS_Canopy.tiff #in relation to project root dir
   buffer_size: 50 # max number of pixels that an agent can move in a single tick
  
 time: 
   start_time: "2000-01-01T00:00:00" #ISO 8601 Timestamp
   hours_per_tick: 1
-  end_tick: 4500
+  end_tick: 2200
  
 logging:
   # loglevel: DEBUG # can be DEBUG, INFO, WARNING, ERROR
   # loglevel: INFO
   loglevel: WARNING
   # loglevel: ERROR
-  agent_log_file: './output/bench1_log.csv'
-  model_meta_file: './output/bench1_meta.json'
-  gpkg_log_file: './output/bench1.gpkg'
-  centroid_log_file: './output/bench1_centroids.gpkg'
+  agent_log_file: './output/infection_200m_bench_log.csv'
+  model_meta_file: './output/infection_200m_bench_log.json'
+  gpkg_log_file: './output/infection_200m_bench_log.gpkg'
+  centroid_log_file: './output/infection_200m_bench_log.gpkg'
 
 # https://columbiaassociation.org/open-space/oh-deer-tips-and-tricks-for-living-with-deer-in-columbia/#:~:text=The%20Howard%20County%20Department%20of,15%20deer%20per%20square%20mile.
 deer:
-  pop_size: 1000 # Number of deer agents to simulate  
-  deer_vision_range: 200 # Number of meters deer can see. Used for finding nearby agents and home range suitability
+  pop_size: 10000 # Number of deer agents to simulate  
+  deer_vision_range: 400 # Number of meters deer can see. Used for finding nearby agents and home range suitability
 
 deer_control_vars:  # From https://www.researchgate.net/publication/363077733_The_effect_of_landscape_transmission_mode_and_social_behavior_on_disease_transmission_Simulating_the_transmission_of_chronic_wasting_disease_in_white-tailed_deer_Odocoileus_virginianus_populations_usi
+  movement_method: 
+    method: DLD # HMM or DLD. Changes the methods used to calculate next step and behaviour
+    use_centroid: True # If true use centroid in turning angle calculations 
   explore_chance:
-    gestation: 0.32
-    fawning: 0.08
-    prerut: 0.2
-    rut: 0.96
+    gestation: 0.032
+    fawning: 0.008
+    prerut: 0.02
+    rut: 0.096
     duration: 
       min: 12 
       max: 24 #Hours
@@ -74,14 +74,13 @@ deer_control_vars:  # From https://www.researchgate.net/publication/363077733_Th
     female_disperse_prob: 0.2 # (Hawkins et al., 1971; Nixon et al., 2007, 1994; Rosenberry et al., 1999) 
   homerange:
     max: 100
-    min: 50
-    suitability_threshold: 90
+    min: 40
+    suitability_threshold: 80
   disease:
   # Susceptible > Infected > Recovered/Dead > Susceptible
+    infectious_range: 200 # NOTE: MUST be <= than 0.5*"deer_vision"! How close [meters] must an agent be to another infected agent to check for infection chance. 
     infectious_start_rate: 0.1 # portion of starting population that is infectious 
-    infection_chance: 0.10 # Chance that agent will be infected upon single contact with infected agent. 
+    infection_chance: 0.1 # Chance that agent will be infected upon single contact with infected agent. 
     infection_duration: (5,1) # normal(mean, stddev) Time after infection, until agent becomes recovered
     immunity_duration: (5,1) # normal(mean, stddev) Time after recovery, until agent loses immunity 
  
-
-

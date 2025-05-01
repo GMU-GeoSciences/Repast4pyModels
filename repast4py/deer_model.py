@@ -132,20 +132,20 @@ class Model:
                                                   self.params.get('logging',{}).get('agent_log_file'), 
                                                   ['Timestamp', 
                                                    'UUID',  
-                                                   'UID',
-                                                   'Rank',
-                                                   'Is Male',
-                                                   'Is Fawn',
-                                                   'Has HomeRange',
+                                                #    'UID',
+                                                #    'Rank',
+                                                #    'Is Male',
+                                                #    'Is Fawn',
+                                                #    'Has HomeRange',
                                                    'x', 'y', 
-                                                   'centroid_x', 'centroid_y',  
-                                                   'Suitable Location', 
-                                                   'Behaviour State', 
+                                                #    'centroid_x', 'centroid_y',  
+                                                #    'Suitable Location', 
+                                                #    'Behaviour State', 
                                                    'Disease State',
-                                                   'grid_location',
-                                                   'NearbyOtherAgentCount',
-                                                   'step_distance',
-                                                   'turn_angle'
+                                                #    'grid_location',
+                                                #    'NearbyOtherAgentCount',
+                                                #    'step_distance',
+                                                #    'turn_angle'
                                                    ])
  
         # Initialise agents
@@ -423,23 +423,24 @@ class Model:
 
             self.agent_logger.log_row(self.tick_time.isoformat(),
                                       agent.uuid, 
-                                      agent.uid, 
-                                      agent.uid[2], #rank
-                                      agent.is_male,
-                                      agent.is_fawn,
-                                      agent.has_homerange,
+                                    #   agent.uid, 
+                                    #   agent.uid[2], #rank
+                                    #   agent.is_male,
+                                    #   agent.is_fawn,
+                                    #   agent.has_homerange,
                                       x_proj,
                                       y_proj,
-                                      x_proj_centroid,
-                                      y_proj_centroid, 
-                                      suitable, 
-                                      agent.behaviour_state, 
+                                    #   x_proj_centroid,
+                                    #   y_proj_centroid, 
+                                    #   suitable, 
+                                    #   agent.behaviour_state, 
                                       agent.disease_state,
                                       #Temp data
-                                      str(grid_location),
-                                      len(nearby_agents),
-                                      agent.pos.step_distance*self.xy_resolution[0],
-                                      agent.pos.turn_angle)
+                                    #   str(grid_location),
+                                    #   len(nearby_agents),
+                                    #   agent.pos.step_distance*self.xy_resolution[0],
+                                    #   agent.pos.turn_angle
+                                      )
 
         self.agent_logger.write()
         return
