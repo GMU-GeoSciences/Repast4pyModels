@@ -442,9 +442,9 @@ class Model:
             x_proj_centroid = agent.pos.centroid.x*self.xy_resolution[0] + int(self.image_bounds.left)
             y_proj_centroid = int(self.image_bounds.top) - agent.pos.centroid.y*self.xy_resolution[1]
 
-            ## Calc local variables
-            local_cover, nearby_agents = landscape.get_nearby_items(agent, model, sense_range=int(self.params['deer']['deer_vision_range']))
-            suitable = behaviour.location_suitability(local_cover,nearby_agents, params)
+            # ## Calc local variables
+            # local_cover, nearby_agents = landscape.get_nearby_items(agent, model, sense_range=int(self.params['deer']['deer_vision_range']))
+            # suitable = behaviour.location_suitability(local_cover,nearby_agents, params)
             
             # Temp Data to add to csv for error checking
             if grid_location is not None:
