@@ -5,38 +5,52 @@
 geo: 
   # Envelope for grid/continuous space for the simulation. Must be integers
   # Howard County:
-  x_min: 1595916
-  x_max: 1641113
-  y_min: 1952151
-  y_max: 1979392
+  # x_min: 1595916
+  # x_max: 1641113
+  # y_min: 1952151
+  # y_max: 1979392
  
+  # # Small Corner of Howard County:
+  x_min: 1600000
+  x_max: 1608000
+  y_min: 1960000
+  y_max: 1968000
+
   tiff_path: ./input/images/2019_CONUS_Canopy.tiff #in relation to project root dir
   buffer_size: 50 # max number of pixels that an agent can move in a single tick
  
 time: 
   start_time: "2000-01-01T00:00:00" #ISO 8601 Timestamp
   hours_per_tick: 1
-  end_tick: 2200
+  end_tick: 2000
  
 logging:
   # loglevel: DEBUG # can be DEBUG, INFO, WARNING, ERROR
-  # loglevel: INFO
-  loglevel: WARNING
+  loglevel: INFO
+  # loglevel: WARNING
   # loglevel: ERROR
-  agent_log_file: './output/infection_100m_bench_log.csv'
-  model_meta_file: './output/infection_100m_bench_log.json'
-  gpkg_log_file: './output/infection_100m_bench_log.gpkg'
-  centroid_log_file: './output/infection_100m_bench_log.gpkg'
+  agent_log_file: './output/HMM_vs_disease.csv'
+  model_meta_file: './output/HMM_vs_disease.json'
+  gpkg_log_file: './output/HMM_vs_disease.gpkg' 
 
 # https://columbiaassociation.org/open-space/oh-deer-tips-and-tricks-for-living-with-deer-in-columbia/#:~:text=The%20Howard%20County%20Department%20of,15%20deer%20per%20square%20mile.
 deer:
-  pop_size: 10000 # Number of deer agents to simulate  
-  deer_vision_range: 400 # Number of meters deer can see. Used for finding nearby agents and home range suitability
+  pop_size: 1000  # Number of deer agents to simulate  
+  deer_vision_range: 400 # [meters]. Edge length of vision square surrounding agent. Used for finding nearby agents and home range suitability
 
 deer_control_vars:  # From https://www.researchgate.net/publication/363077733_The_effect_of_landscape_transmission_mode_and_social_behavior_on_disease_transmission_Simulating_the_transmission_of_chronic_wasting_disease_in_white-tailed_deer_Odocoileus_virginianus_populations_usi
-  movement_method: 
-    method: DLD # HMM or DLD. Changes the methods used to calculate next step and behaviour
-    use_centroid: True # If true use centroid in turning angle calculations 
+  movement_method: # Uncomment ONE of the below movement methods.
+    # method: DLD # DLD method used to calculate behaviour states and movement distributions
+    method: HMM # Hidden MArkov Model movement model
+    # method: still # No movement, agents do not move.
+    # method: random # Agents move purely randomly. No concern for time, behaviour states or landscape
+    dld_method:
+      some_vars: 1
+    hmm_method: 
+      some_vars: 1
+      use_centroid: True # If true use centroid in turning angle calculations
+    random_method:
+      some_vars: 1
   explore_chance:
     gestation: 0.032
     fawning: 0.008
@@ -78,9 +92,11 @@ deer_control_vars:  # From https://www.researchgate.net/publication/363077733_Th
     suitability_threshold: 80
   disease:
   # Susceptible > Infected > Recovered/Dead > Susceptible
-    infectious_range: 100 # NOTE: MUST be <= than 0.5*"deer_vision"! How close [meters] must an agent be to another infected agent to check for infection chance. 
+    infectious_range: 200 # NOTE: MUST be <= than 0.5*"deer_vision"! How close [meters] must an agent be to another infected agent to check for infection chance. 
     infectious_start_rate: 0.1 # portion of starting population that is infectious 
     infection_chance: 0.1 # Chance that agent will be infected upon single contact with infected agent. 
     infection_duration: (5,1) # normal(mean, stddev) Time after infection, until agent becomes recovered
-    immunity_duration: (5,1) # normal(mean, stddev) Time after recovery, until agent loses immunity 
+    immunity_duration: (1000,1) # normal(mean, stddev) Time after recovery, until agent loses immunity 
  
+
+

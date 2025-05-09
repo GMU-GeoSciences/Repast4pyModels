@@ -5,8 +5,7 @@ from dataclasses import dataclass
 from enum import Enum
 import datetime
 
-from . import time_functions
-from . import behaviour
+from deer_agent import behaviour, time_functions
 
 '''
 This controls the stepping distances and angles
@@ -141,6 +140,9 @@ def step(agent, xy_resolution):
     next_position = agent.pos.calc_next_point(current_pos, step_distance, step_angle) 
 
     return next_position
+
+
+### TODO: These should be in the DLD section. Not movement specific...
 
 def choose_params(timestamp):
     this_season = time_functions.check_time_of_year(timestamp)

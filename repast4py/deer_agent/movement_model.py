@@ -5,8 +5,8 @@ from dataclasses import dataclass
 from enum import Enum
 import datetime
 
-from . import time_functions
-from . import behaviour
+from time_functions import *
+from behaviour import *
 
 '''
 This models the deer's movement based on a Hidden Markov Model derived from GPS data. 
@@ -36,7 +36,7 @@ It would be nice to rewrite the R package using Python libraries but that's a li
 # Rut	    5.354084	0.383384	0.101771	7.730135
 
 # ValueError: mutable default <class 'deer_agent.movement.Position_Vector'> for field pos is not allowed: use default_factory
-@dataclass
+# @dataclass
 class StepTurnDist_mixin:
     '''
     Hold the step and turn distribution variables
@@ -98,14 +98,15 @@ class Position_Vector:
         dx = self.centroid.x - self.current_point.x
         dy = self.centroid.y - self.current_point.y
         angle_radians = np.arctan2(dx, dy)
-        self.heading_to_centroid = np.rad2deg((angle_radians) % (2 * np.pi)) # Compass direction of travel between current_pos and centroid 
+        self.heading_to_centroid = (angle_radians) % (2 * np.pi) # Compass direction of travel between current_pos and centroid 
 
         dx = self.current_point.x - self.last_point.x
         dy = self.current_point.y - self.last_point.y
         angle_radians = np.arctan2(dx, dy)
-        self.heading_from_prev = np.rad2deg((angle_radians) % (2 * np.pi)) # Compass direction of travel between last_pos and current_pos 
+        self.heading_from_prev = (angle_radians) % (2 * np.pi) # Compass direction of travel between last_pos and current_pos 
+        return
     
-    def calc_next_point(self, intial_point, step_distance, turn_angle):
+    def calc_next_point(self, initial_point, step_distance, turn_angle):
         '''
         When given a distance and angle calculate the X and Y coords of it
         when starting from a current position. 
@@ -114,8 +115,8 @@ class Position_Vector:
         '''
         self.calc_dist_and_angle()
 
-        next_x = intial_point.x + step_distance*np.sin(np.deg2rad(turn_angle))
-        next_y = intial_point.y + step_distance*np.cos(np.deg2rad(turn_angle))
+        next_x = initial_point.x + step_distance*np.sin(turn_angle)
+        next_y = initial_point.y + step_distance*np.cos(turn_angle)
         
         next_point = Point(next_x,next_y)
         return next_point
@@ -136,12 +137,12 @@ def step(agent, xy_resolution):
     return next_position
 
 def choose_params(timestamp):
-    this_season = time_functions.check_time_of_year(timestamp)
-    if this_season == time_functions.DeerSeasons.GESTATION:
+    this_season = check_time_of_year(timestamp)
+    if this_season == DeerSeasons.GESTATION:
         step_params = StepTurnDist.GESTATION
-    elif this_season == time_functions.DeerSeasons.FAWNING:
+    elif this_season == DeerSeasons.FAWNING:
         step_params = StepTurnDist.FAWNING
-    elif this_season == time_functions.DeerSeasons.PRERUT:
+    elif this_season == DeerSeasons.PRERUT:
         step_params = StepTurnDist.PRERUT
     else: 
         step_params = StepTurnDist.RUT
@@ -176,21 +177,21 @@ def calculate_random_turn(agent):
     # TODO: Not using the distance from centroid?
     distance_from_centroid = agent.pos.distance_to_centroid
 
-    if agent.behaviour_state == behaviour.Behaviour_State.NORMAL:
-        u_t = np.deg2rad(agent.pos.heading_to_centroid)
+    if agent.behaviour_state == Behaviour_State.NORMAL:
+        u_t = agent.pos.heading_to_centroid
         p_t = 0.5
         
-    elif agent.behaviour_state == behaviour.Behaviour_State.DISPERSE:
-        u_t = np.deg2rad(agent.pos.heading_from_prev)
+    elif agent.behaviour_state == Behaviour_State.DISPERSE:
+        u_t = agent.pos.heading_from_prev
         p_t = 0.5
 
-    elif agent.behaviour_state == behaviour.Behaviour_State.MATING:
-        u_t = np.deg2rad(agent.pos.heading_to_centroid)
+    elif agent.behaviour_state == Behaviour_State.MATING:
+        u_t = agent.pos.heading_to_centroid
         p_t = 0.5
 
-    elif agent.behaviour_state == behaviour.Behaviour_State.EXPLORE:
-        u_t = np.deg2rad(agent.pos.heading_from_prev)
+    elif agent.behaviour_state == Behaviour_State.EXPLORE:
+        u_t = agent.pos.heading_from_prev
         p_t = 0.5
     
     turn_angle = wrapcauchy.rvs(p_t, loc = u_t, scale = 1) 
-    return np.rad2deg(turn_angle)
+    return turn_angle

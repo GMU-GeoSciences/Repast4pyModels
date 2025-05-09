@@ -13,9 +13,7 @@ import uuid
 import ast
 
 import logging as pylog # Repast logger is called as "logging"
-from . import movement
-from . import behaviour
-from . import disease
+from deer_agent import movement, behaviour, disease
 
 
 log = pylog.getLogger(__name__)

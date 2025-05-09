@@ -24,6 +24,11 @@ from deer_agent.deer_agent import Deer, Deer_Config
 from deer_agent import behaviour, movement, disease, hmm_model
 from landscape import fetch_img, landscape 
 
+from deer_agent.movement_basic import BaseMoveModel, RandomMovement
+from deer_agent.movement_dld import DLD_MoveModel
+from deer_agent.movement_hmm import HMM_MoveModel_2_States
+
+
 # model = None
 agent_tuple_cache = {}
 log = pylog.getLogger(__name__)
@@ -310,7 +315,7 @@ class Model:
         '''
         Remove an agent from the sim. 
         '''
-        log.debug(f'Removing agent...')
+        log.debug(f'Removing dead agent: {agent.uuid}')
         self.contexts['deer'].remove(agent)
         return
 
@@ -331,9 +336,7 @@ class Model:
         #TODO By getting the location it limits the agent to the grid...
         location = self.shared_space.get_location(agent)
         agent.pos.current_point.x = copy(location.x)
-        agent.pos.current_point.y = copy(location.y)
-
-
+        agent.pos.current_point.y = copy(location.y) 
         return
 
     def step(self):
@@ -359,17 +362,45 @@ class Model:
             # Calculate disease state
             agent = disease.check_disease_state(agent, nearby_agents, params, resolution = model.xy_resolution[0])
 
-            if self.params['deer_control_vars']['movement_method']['method'] == 'HMM':
-                # #Use HMM Methods of states and steps
+            # Calculate behaviour states, and movement based off a 
+            # model method specified in the config.
+            # TODO: these movement models should have a single style of input/output
+            # and be attached to the agent class during agent init.
+            movement_method = self.params['deer_control_vars']['movement_method']['method']
+            if movement_method == 'still':
+                '''
+                agents do not move.
+                '''
+                next_position = agent.pos 
+
+            elif movement_method == 'random':
+                '''
+                Agents move randomly without a care for landscape
+                behaviour states or time of day/year.
+                '''
+                movement_model = RandomMovement()
+                step_distance, turn_angle = movement_model.step()  
+                next_position = agent.pos.calc_next_point(agent.pos.current_point, step_distance, turn_angle)  
+ 
+            elif movement_method == 'HMM':
+                '''
+                Use a hidden markov model to calculate behaviour states
+                and movement parameters.
+                '''
                 move_model = hmm_model.BehaviourState_HMM() 
-                next_position,  next_state = move_model.step(agent, local_cover, self.xy_resolution)
+                next_state, step_distance, turn_angle = move_model.step(agent, local_cover, self.xy_resolution)
+                next_position = agent.pos.calc_next_point(agent.pos.current_point, step_distance, turn_angle) 
                 agent.behaviour_state = next_state 
-            
-            else: #Use DLD Methods of states and steps
+
+            elif movement_method == 'DLD': 
                 # Calculate next step
                 agent = behaviour.calculate_next_state(agent, local_cover, nearby_agents, params)
                 next_position = movement.step(agent, self.xy_resolution) 
-                
+
+            else:
+                log.error('Unknown movement choice')
+                break
+
                 # Implement next step
             self.move_agent(agent, next_position.x, next_position.y)
             if agent.is_dead:
@@ -448,24 +479,11 @@ class Model:
 def setup_logging(params):
     '''
     Setup the logging for both Repast4Py as well as a normal python logger
-    '''
-
+    ''' 
     # Setup a command line logger.
     loglevel = params['logging']['loglevel']
     pylog.basicConfig(level=loglevel, format='%(asctime)s %(relativeCreated)6d %(threadName)s ::%(levelname)-8s %(message)s')
-    log = pylog.getLogger()
-
-    # if params.get('sim',{}).get('environment') == 'hopper':
-    #     # Only log ERROR's
-    #     log.setLevel('ERROR')
-
-    # elif params.get('sim',{}).get('environment') == 'local':
-    #     # Set Log level
-    #     log.setLevel(loglevel)
-    # else:
-    #     # Do not setup a command line logger.
-    #     log.setLevel('ERROR')
-    #     log.error('Unknown Environment...')
+    log = pylog.getLogger() 
 
     log.debug('Ready to log!')
     log.debug(f'Params: {params}')

@@ -8,7 +8,7 @@ import numpy as np
 
 import logging as pylog # Repast logger is called as "logging" 
 
-from . import behaviour
+from deer_agent import time_functions, behaviour
 
 log = pylog.getLogger(__name__)
 

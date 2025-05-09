@@ -9,7 +9,7 @@ import numpy as np
 
 import logging as pylog # Repast logger is called as "logging" 
 
-from . import behaviour
+from .behaviour import *
 
 
 log = pylog.getLogger(__name__)
