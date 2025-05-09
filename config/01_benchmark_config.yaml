@@ -17,7 +17,7 @@ geo:
   y_max: 1968000
 
   tiff_path: ./input/images/2019_CONUS_Canopy.tiff #in relation to project root dir
-  buffer_size: 50 # max number of pixels that an agent can move in a single tick
+  buffer_size: 20 # max number of pixels that an agent can move in a single tick
  
 time: 
   start_time: "2000-01-01T00:00:00" #ISO 8601 Timestamp

@@ -46,7 +46,7 @@ def get_nearby_items(agent, model, sense_range = 100):
         local_array: the raster that surrounds the agent
         local_agents: list of other nearby agents within the sensor range
 
-    From cProfile: About 60% of the time is spent in this function.
+    From cProfile: About 25% of the time is spent in this function.
     '''
     grid_range = math.ceil(sense_range / model.xy_resolution[0]) #Turn meters into pixels
 
