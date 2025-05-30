@@ -4,8 +4,8 @@ from dataclasses import dataclass
 from enum import Enum
 
 from .movement_basic import BaseMoveModel
-from .time_functions import * 
-from .behaviour import *
+from .time_functions import *
+from .behaviour import * 
  
 import logging as pylog # Repast logger is called as "logging"
 log = pylog.getLogger(__name__)
@@ -70,19 +70,19 @@ class DLD_MoveModel(BaseMoveModel):
         using the distance and turn angle to the centroid. 
         ''' 
         if agent.behaviour_state == Behaviour_State.NORMAL:
-            u_t = agent.pos.heading_to_centroid
+            u_t = agent.heading_to_centroid
             p_t = 0.5
             
         elif agent.behaviour_state == Behaviour_State.DISPERSE:
-            u_t = agent.pos.heading_from_prev
+            u_t = agent.heading_from_prev
             p_t = 0.5
 
         elif agent.behaviour_state == Behaviour_State.MATING:
-            u_t = agent.pos.heading_to_centroid
+            u_t = agent.heading_to_centroid
             p_t = 0.5
 
         elif agent.behaviour_state == Behaviour_State.EXPLORE:
-            u_t = agent.pos.heading_from_prev
+            u_t = agent.heading_from_prev
             p_t = 0.5
         
         turn_angle = wrapcauchy.rvs(p_t, 
@@ -101,6 +101,6 @@ class DLD_MoveModel(BaseMoveModel):
         Behaviour_state and TimeState are held in the agent object 
         '''
         step_distance = self.calculate_random_step(agent)
-        turn_angle = self.calculate_random_turn(agent)  
+        turn_angle = self.calculate_random_turn(agent)
 
         return step_distance, turn_angle

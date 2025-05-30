@@ -20,6 +20,7 @@ class BaseMoveModel(object):
 
         self.current_state = 0
         self.next_state = 0
+        self.step_resolution = 30 #Required to go from distribution params to xy grid dimensions...
         return
 
     # functions:  
@@ -65,15 +66,17 @@ class RandomMovement(BaseMoveModel):
     '''
     Simple random movement model. Agents move around with a weibull/cauchy step and turn model.
     Not influenced by environmental, time or behaviour states. Just a pure random walk. 
-    '''
+    ''' 
     def __init__(self, *args, **kwargs):
         self.movement_n_states = 1
+        self.step_resolution = 30 #Required to go from distribution params to xy grid dimensions... 
         self.movement_params = [{'state': 0, 
                                  'state_name': None,
-                                 'step_params':{'c': 1.4,
-                                                'loc': 1,
-                                                'scale': 50},
-                                 'turn_params':{'c': 0.25,
+                                 'step_params':{'a':7.44,
+                                                'c': 0.35,
+                                                'loc': -0.08,
+                                                'scale': 3.71},
+                                 'turn_params':{'c': 0.23,
                                                 'loc': -3.14,
                                                 'scale': 1}}] # Params for each different move state. List of N dictionaries of step and turn params
         
@@ -88,10 +91,15 @@ class RandomMovement(BaseMoveModel):
         ''' 
         params = self.movement_params[self.next_state]['step_params']
         assert self.movement_params[self.next_state]['state'] == self.next_state, "Bad state number..."
-        step_distance = weibull_min.rvs(params['c'],    
-                                  loc = params['loc'], 
-                                  scale = params['scale']) 
-        return step_distance
+        # step_distance = weibull_min.rvs(params['c'],    
+        #                           loc = params['loc'], 
+        #                           scale = params['scale']) 
+        step_distance = exponweib.rvs(params['a'], 
+                                    params['c'], 
+                                    params['loc'], 
+                                    params['scale'])
+        
+        return step_distance/self.step_resolution
     
     def calculate_random_turn(self):
         '''
@@ -102,11 +110,12 @@ class RandomMovement(BaseMoveModel):
         params = self.movement_params[self.next_state]['turn_params']
         turn_angle = wrapcauchy.rvs(params['c'], 
                                     loc = params['loc'],
-                                    scale = params['scale']) 
+                                    scale = params['scale'])   
+
+        
+        turn_angle = np.mod(turn_angle + np.pi, 2*np.pi) - np.pi
         return turn_angle
     
-
-
 ####################################
 ## Movement Helper Classes        ##
 ####################################

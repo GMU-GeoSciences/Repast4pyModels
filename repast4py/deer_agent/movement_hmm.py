@@ -4,6 +4,7 @@ import numpy as np
 import random 
 
 from .movement_basic import BaseMoveModel
+from .behaviour import Behaviour_State
  
 import logging as pylog # Repast logger is called as "logging"
 log = pylog.getLogger(__name__)
@@ -46,9 +47,10 @@ class HMM_MoveModel_2_States(BaseMoveModel):
         # TODO: HMM should randomly select the starting state based off the model fit params.
         self.current_state = 0
         self.next_state = 0
+        self.step_resolution = 30.0
 
 
-    def choose_next_state(self, current_state, location_dict):
+    def choose_next_state(self, current_state, location_array):
         '''
         Based off the: 
             - current state, 
@@ -66,7 +68,9 @@ class HMM_MoveModel_2_States(BaseMoveModel):
         raster_value  9.414977e-05  0.01350731
         TODO: Rewrite this for N behaviour states
         '''
-        center_cover = location_dict['local_cover']  
+        # center_cover = location_array
+        center_cover = np.take(location_array, location_array.size // 2)
+        self.current_state = current_state
 
         B = self.hmm_covariate_intercept
         C = self.hmm_covariate_coeff
@@ -76,16 +80,22 @@ class HMM_MoveModel_2_States(BaseMoveModel):
 
         # y[0] == Prob of changing state from 0 to 1
         # y[1] == Prob of changing state from 1 to 0
-        if self.current_state == 0:
+
+        state_number = self.current_state.value
+
+        if state_number == 0:
             if random.uniform(0, 1) < y[0]: 
-                next_state = 1
+                next_state = Behaviour_State(1)
             else:
-                next_state = 0
-        elif self.current_state == 1: 
+                next_state = Behaviour_State(0)
+        elif state_number == 1: 
             if random.uniform(0, 1) < y[1]: 
-                next_state = 0
+                next_state = Behaviour_State(0)
             else:
-                next_state = 1
+                next_state = Behaviour_State(1)
+        else: 
+            log.warning(f'Unknown state {current_state}')
+
         return next_state
     
 
@@ -94,12 +104,14 @@ class HMM_MoveModel_2_States(BaseMoveModel):
         Calculat the step distance based off a distribution function and the associated parameters.
         https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.weibull_min.html#scipy.stats.weibull_min
         ''' 
-        params = self.movement_params[self.next_state]['step_params']
-        assert self.movement_params[self.next_state]['state'] == self.next_state, "Bad state number..."
+        state_number = self.current_state.value
+        params = self.movement_params[state_number]['step_params']
+        # assert self.movement_params[state_number]['state'] == self.current_state, "Bad state number..."
         step_distance = weibull_min.rvs(params['c'],    
                                   loc = params['loc'], 
-                                  scale = params['scale']) 
-        return step_distance
+                                  scale = params['scale'])
+         
+        return step_distance/self.step_resolution
     
     def calculate_random_turn(self):
         '''
@@ -107,21 +119,29 @@ class HMM_MoveModel_2_States(BaseMoveModel):
         c == rho
         loc == mu
         '''
-        params = self.movement_params[self.next_state]['turn_params']
+        state_number = self.current_state.value
+        params = self.movement_params[state_number]['turn_params']
         turn_angle = wrapcauchy.rvs(params['c'], 
                                     loc = params['loc'],
                                     scale = params['scale']) 
+        
+
+        turn_angle = np.mod(turn_angle + np.pi, 2*np.pi) - np.pi
         return turn_angle
     
 
-    def step(self, current_state, location_dict):
+    def step(self, agent, location_array):
         '''
         For each timestep the agent needs to calculate a new position based off of some 
         environmental variables and the previous step/state.
         In this simple model location info doesn't matter and the agent doesn't move
         '''  
-        next_state = self.choose_next_state(current_state, location_dict)
+
+        # next_position, next_state = move_model.step(agent, local_cover, self.xy_resolution)
+        current_state = agent.behaviour_state
+        self.current_state = self.choose_next_state(current_state, location_array)
         step_distance = self.calculate_random_step()
         turn_angle = self.calculate_random_turn() 
+        # self.current_state = next_state
 
-        return next_state, step_distance, turn_angle
+        return self.current_state, step_distance, turn_angle

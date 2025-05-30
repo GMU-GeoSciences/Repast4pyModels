@@ -8,7 +8,7 @@ import datetime
 import numpy as np
 
 import logging as pylog # Repast logger is called as "logging" 
-from deer_agent import time_functions
+from . import time_functions
  
 log = pylog.getLogger(__name__)
 
@@ -38,10 +38,10 @@ class Behaviour_State(Enum):
         behavior starts, before the deer reverts to normal movements and returns to its home range.
         "
     '''
-    NORMAL = 1
-    DISPERSE = 2
-    MATING = 3
-    EXPLORE = 4
+    NORMAL = 0
+    DISPERSE = 1
+    MATING = 2
+    EXPLORE = 3
 
 def check_group():
     '''
@@ -104,8 +104,9 @@ def establish_homerange(agent):
     '''
     This is a good place. Make it home
     '''
-    log.debug(f'New home range for {agent.uuid}')
-    agent.pos.centroid = copy(agent.pos.current_point)
+    log.debug(f'New home range for {agent.uuid}') 
+    agent.centroid_x = copy(agent.current_x)
+    agent.centroid_y = copy(agent.current_y)
     agent.has_homerange = True
 
     return agent

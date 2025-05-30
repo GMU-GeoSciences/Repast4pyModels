@@ -5,9 +5,7 @@ import random
 from dataclasses import dataclass
 from enum import Enum
 import datetime
-
-from .time_functions import *
-from .behaviour import *
+ 
 import logging as pylog # Repast logger is called as "logging"
 
 log = pylog.getLogger(__name__)
