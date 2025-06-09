@@ -4,20 +4,21 @@
 ########################## 
 geo: 
   # Envelope for grid/continuous space for the simulation. Must be integers
-  # Howard County:
-  x_min: 1595916
-  x_max: 1641113
-  y_min: 1952151
-  y_max: 1979392
+  # # Howard County:
+  # x_min: 1595916
+  # x_max: 1641113
+  # y_min: 1952151
+  # y_max: 1979392
  
-  # # Small Corner of Howard County:
-  # x_min: 1600000
-  # x_max: 1608000
-  # y_min: 1960000
-  # y_max: 1968000
+  # Small Corner of Howard County:
+  x_min: 1616000
+  x_max: 1629000
+  y_min: 1962000
+  y_max: 1973000
 
-  tiff_path: ./input/images/2019_CONUS_Canopy.tiff #in relation to project root dir
-  buffer_size: 20 # max number of pixels that an agent can move in a single tick
+  # tiff_path: ./input/images/2019_CONUS_Canopy.tiff #in relation to project root dir
+  tiff_path: ./input/images/RSF_suitability_classes_5070_resample.tif #in relation to project root dir
+  buffer_size: 50 # max number of pixels that an agent can move in a single tick
  
 time: 
   start_time: "2000-01-01T00:00:00" #ISO 8601 Timestamp
@@ -29,9 +30,9 @@ logging:
   loglevel: INFO
   # loglevel: WARNING
   # loglevel: ERROR
-  agent_log_file: './output/random_vs_disease.csv'
-  model_meta_file: './output/random_vs_disease.json'
-  gpkg_log_file: './output/random_vs_disease.gpkg' 
+  agent_log_file: './output/hmm2state.csv'
+  model_meta_file: './output/hmm2state.json'
+  gpkg_log_file: './output/hmm2state.gpkg' 
 
 # https://columbiaassociation.org/open-space/oh-deer-tips-and-tricks-for-living-with-deer-in-columbia/#:~:text=The%20Howard%20County%20Department%20of,15%20deer%20per%20square%20mile.
 deer:
@@ -41,9 +42,9 @@ deer:
 deer_control_vars:  # From https://www.researchgate.net/publication/363077733_The_effect_of_landscape_transmission_mode_and_social_behavior_on_disease_transmission_Simulating_the_transmission_of_chronic_wasting_disease_in_white-tailed_deer_Odocoileus_virginianus_populations_usi
   movement_method: # Uncomment ONE of the below movement methods.
     # method: DLD # DLD method used to calculate behaviour states and movement distributions
-    # method: HMM # Hidden MArkov Model movement model
+    method: HMM2 # Hidden MArkov Model movement model
     # method: still # No movement, agents do not move.
-    method: random # Agents move purely randomly. No concern for time, behaviour states or landscape
+    # method: random # Agents move purely randomly. No concern for time, behaviour states or landscape
     dld_method:
       some_vars: 1
     hmm_method: 

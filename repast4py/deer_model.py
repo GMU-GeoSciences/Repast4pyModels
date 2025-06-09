@@ -26,7 +26,7 @@ from landscape import fetch_img, landscape_funcs
 
 from deer_agent.movement_basic import BaseMoveModel, RandomMovement
 from deer_agent.movement_dld import DLD_MoveModel
-from deer_agent.movement_hmm import HMM_MoveModel_2_States
+from deer_agent.movement_hmm import HMM_MoveModel_2_States, HMM_MoveModel_3_States
 from deer_agent import movement
 from deer_agent.disease import *
 from deer_agent.time_functions import *
@@ -149,6 +149,7 @@ class Model:
                                                    'x', 'y', 
                                                    'step', 'turn',  
                                                    'Movement Bearing', 
+                                                   'turn_home',
                                                    'Behaviour State', 
                                                    'Disease State',
                                                 #    'grid_location',
@@ -389,7 +390,7 @@ class Model:
                 agent.step_distance, agent.turn_angle = movement_model.step()
                 agent.calc_next_point(agent.step_distance, agent.turn_angle) 
 
-            elif movement_method == 'HMM':
+            elif movement_method == 'HMM2':
                 '''
                 Use a hidden markov model to calculate behaviour states
                 and movement parameters.
@@ -405,6 +406,22 @@ class Model:
                 agent.calc_next_point(step_distance, turn_angle) 
                 agent.behaviour_state = next_state 
 
+
+            elif movement_method == 'HMM3':
+                '''
+                Use a hidden markov model to calculate behaviour states
+                and movement parameters.
+                '''
+                move_model = HMM_MoveModel_3_States() 
+
+                local_cover = landscape_funcs.get_nearby_pixels(agent, model, sense_range = deer_vision_range)
+
+                next_state, step_distance, turn_angle  = move_model.step(agent, local_cover)
+                agent.step_distance = step_distance
+                agent.step_angle = turn_angle
+
+                agent.calc_next_point(step_distance, turn_angle) 
+                agent.behaviour_state = next_state 
 
             elif movement_method == 'DLD': 
                 # Calculate next step
@@ -463,7 +480,7 @@ class Model:
             # Get centroid and project it to 5070
             x_proj_centroid = agent.centroid_x*self.xy_resolution[0] + int(self.image_bounds.left)
             y_proj_centroid = int(self.image_bounds.top) - agent.centroid_y*self.xy_resolution[1]
-
+            return_angle = agent.heading_from_prev - agent.heading_to_centroid
             # ## Calc local variables
             # local_cover, nearby_agents = landscape.get_nearby_items(agent, model, sense_range=int(self.params['deer']['deer_vision_range']))
             # suitable = behaviour.location_suitability(local_cover,nearby_agents, params)
@@ -482,6 +499,7 @@ class Model:
                                      agent.step_distance*self.xy_resolution[0],
                                      agent.turn_angle,
                                      agent.heading_from_prev,
+                                     return_angle,
                                     #   suitable, 
                                       agent.behaviour_state, 
                                       agent.disease_state,

@@ -4,19 +4,20 @@
 ########################## 
 geo: 
   # Envelope for grid/continuous space for the simulation. Must be integers
-  # Howard County:
-  x_min: 1595916
-  x_max: 1641113
-  y_min: 1952151
-  y_max: 1979392
+  # # Howard County:
+  # x_min: 1595916
+  # x_max: 1641113
+  # y_min: 1952151
+  # y_max: 1979392
  
-  # # Small Corner of Howard County:
-  # x_min: 1600000
-  # x_max: 1608000
-  # y_min: 1960000
-  # y_max: 1968000
+  # Small Corner of Howard County:
+  x_min: 1616000
+  x_max: 1629000
+  y_min: 1962000
+  y_max: 1973000
 
-  tiff_path: ./input/images/2019_CONUS_Canopy.tiff #in relation to project root dir
+  # tiff_path: ./input/images/2019_CONUS_Canopy.tiff #in relation to project root dir
+  tiff_path: ./input/images/RSF_suitability_classes_5070_resample.tif #in relation to project root dir
   buffer_size: 50 # max number of pixels that an agent can move in a single tick
  
 time: 
@@ -29,9 +30,9 @@ logging:
   loglevel: INFO
   # loglevel: WARNING
   # loglevel: ERROR
-  agent_log_file: './output/DLD_vs_disease.csv'
-  model_meta_file: './output/DLD_vs_disease.json'
-  gpkg_log_file: './output/DLD_vs_disease.gpkg' 
+  agent_log_file: './output/dld.csv'
+  model_meta_file: './output/dld.json'
+  gpkg_log_file: './output/dld.gpkg' 
 
 # https://columbiaassociation.org/open-space/oh-deer-tips-and-tricks-for-living-with-deer-in-columbia/#:~:text=The%20Howard%20County%20Department%20of,15%20deer%20per%20square%20mile.
 deer:
