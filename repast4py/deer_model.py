@@ -1,6 +1,7 @@
 import logging as pylog # Repast logger is called as "logging"
 
 from typing import Dict, Tuple
+import deer_agent.agent
 from mpi4py import MPI
 
 from copy import copy, deepcopy
@@ -19,10 +20,17 @@ from repast4py.space import DiscretePoint as dpt
 from repast4py.value_layer import SharedValueLayer
 from datetime import datetime, timedelta
 
-# Local Files
-from deer_agent.deer_agent import Deer, Deer_Config
-from deer_agent import behaviour, movement, disease, hmm_model
-from landscape import fetch_img, landscape 
+# Local Files 
+import deer_agent
+from landscape import fetch_img, landscape_funcs 
+
+from deer_agent.movement_basic import BaseMoveModel, RandomMovement
+from deer_agent.movement_dld import DLD_MoveModel
+from deer_agent.movement_hmm import HMM_MoveModel_2_States, HMM_MoveModel_3_States
+from deer_agent import movement
+from deer_agent.disease import *
+from deer_agent.time_functions import *
+
 
 # model = None
 agent_tuple_cache = {}
@@ -51,13 +59,13 @@ def restore_agent(agent_tuple: Tuple):
     # agent_cfg = agent_tuple[1]
     # agent.set_cfg(agent_cfg)
 
-    if uid[1] == Deer.TYPE: 
+    if uid[1] == deer_agent.agent.DeerAgent.TYPE: 
         if uid in agent_tuple_cache:
             # Agent exists in cache.
             agent = agent_tuple_cache[uid]
         else:
             # Cache this agent
-            agent = Deer(uid[0], uid[2]) #(agent_id, rank)
+            agent = deer_agent.agent.DeerAgent(uid[0], uid[2]) #(agent_id, rank)
             agent_cfg = agent_tuple[1]
             agent.set_cfg(agent_cfg)
             agent_tuple_cache[uid] = agent
@@ -119,7 +127,7 @@ class Model:
         self.runner.schedule_stop(params['time']['end_tick'])
         self.runner.schedule_end_event(self.end_sim)
 
-        self.start_timestamp = datetime.fromisoformat(params['time']['start_time'])
+        self.start_timestamp = datetime.datetime.fromisoformat(params['time']['start_time'])
         self.tick_time = self.start_timestamp
         self.tick_hour_interval = params['time']['hours_per_tick']
         
@@ -137,10 +145,12 @@ class Model:
                                                 #    'Is Male',
                                                 #    'Is Fawn',
                                                 #    'Has HomeRange',
+                                                   'x_proj', 'y_proj', 
                                                    'x', 'y', 
-                                                #    'centroid_x', 'centroid_y',  
-                                                #    'Suitable Location', 
-                                                #    'Behaviour State', 
+                                                   'step', 'turn',  
+                                                   'Movement Bearing', 
+                                                   'turn_home',
+                                                   'Behaviour State', 
                                                    'Disease State',
                                                 #    'grid_location',
                                                 #    'NearbyOtherAgentCount',
@@ -239,7 +249,9 @@ class Model:
         Start the agents and model.  
         '''
         log.info('Starting model...')
-        self.server_start_timestamp = datetime.now()
+        movement_method = self.params['deer_control_vars']['movement_method']['method']
+        log.info(f'Using movement model:{movement_method}') 
+        self.server_start_timestamp = datetime.datetime.now()
         self.runner.execute()
 
     def end_sim(self):
@@ -247,7 +259,7 @@ class Model:
         Clean up and log data.
         '''
         log.info(f'Cleaning up simulation...')
-        self.end_start_timestamp = datetime.now()
+        self.end_start_timestamp = datetime.datetime.now()
         self.agent_logger.close()
         self.log_model_info()
         #Convert csv file to geopackage to make viz easier
@@ -295,11 +307,12 @@ class Model:
         '''
         local_bounds = self.shared_space.get_local_bounds()    
         if (x is None) or (y is None): 
+            #TODO place the deer in a non random way, as a function of the suitability raster
             x = random.default_rng.uniform(local_bounds.xmin, local_bounds.xmin + local_bounds.xextent)
             y = random.default_rng.uniform(local_bounds.ymin, local_bounds.ymin + local_bounds.yextent)
         
-        agent = Deer(id, self.rank) 
-        deer_cfg = Deer_Config()  
+        agent = deer_agent.agent.DeerAgent(id, self.rank) 
+        deer_cfg = deer_agent.agent.Deer_Config()  
         deer_cfg_object = deer_cfg.rand_factory(x,y,params)
         agent.set_cfg(deer_cfg_object)
         log.debug(f'Creating Rank:Agent {self.rank}:{agent.id}.') 
@@ -310,7 +323,7 @@ class Model:
         '''
         Remove an agent from the sim. 
         '''
-        log.debug(f'Removing agent...')
+        log.debug(f'Removing dead agent: {agent.uuid}')
         self.contexts['deer'].remove(agent)
         return
 
@@ -321,19 +334,16 @@ class Model:
         log.debug(f'Moving agent {self.rank}:{agent.id} to Point({x},{y})...')
 
         location = self.shared_space.get_location(agent)
-        if location is not None:
-            agent.pos.last_point.x = copy(location.x)
-            agent.pos.last_point.y = copy(location.y)
+        # if location is not None:
+        #     agent.last_point.x = copy(location.x)
+        #     agent.plast_point.y = copy(location.y)
 
         self.shared_space.move(agent, cpt(x,y))
         self.grid.move(agent, dpt(int(x),int(y)))
 
-        #TODO By getting the location it limits the agent to the grid...
         location = self.shared_space.get_location(agent)
-        agent.pos.current_point.x = copy(location.x)
-        agent.pos.current_point.y = copy(location.y)
-
-
+        agent.current_x = copy(location.x)
+        agent.current_y = copy(location.y) 
         return
 
     def step(self):
@@ -348,30 +358,90 @@ class Model:
         dead_agents = []
         deer_vision_range = int(self.params['deer']['deer_vision_range'])
 
-
-        for agent in self.contexts['deer'].agents(Deer.TYPE):
+        for agent in self.contexts['deer'].agents(deer_agent.agent.DeerAgent.TYPE):
             log.debug(f'Working with agent {self.rank}:{agent.id}')
 
             # Get tick info
             agent.timestamp = self.tick_time
-            local_cover, nearby_agents = landscape.get_nearby_items(agent, model, sense_range = deer_vision_range)
+            # local_cover, other_agents = landscape.get_nearby_items(agent, model, sense_range=deer_vision_range)
             
             # Calculate disease state
-            agent = disease.check_disease_state(agent, nearby_agents, params, resolution = model.xy_resolution[0])
+            # nearby_agents = landscape.get_nearby_agents(agent, model, sense_range = deer_vision_range)
+            nearby_agents = landscape_funcs.get_nearby_grid_agents(agent, model, sense_range = deer_vision_range)
+            agent = check_disease_state(agent, nearby_agents, params, resolution = model.xy_resolution[0])
 
-            if self.params['deer_control_vars']['movement_method']['method'] == 'HMM':
-                # #Use HMM Methods of states and steps
-                move_model = hmm_model.BehaviourState_HMM() 
-                next_position,  next_state = move_model.step(agent, local_cover, self.xy_resolution)
+            # Calculate behaviour states, and movement based off a 
+            # model method specified in the config.
+            # TODO: these movement models should have a single style of input/output
+            # and be attached to the agent class during agent init.
+            movement_method = self.params['deer_control_vars']['movement_method']['method']
+            if movement_method == 'still':
+                '''
+                agents do not move.
+                '''
+                next_position = agent.pos 
+
+            elif movement_method == 'random':
+                '''
+                Agents move randomly without a care for landscape
+                behaviour states or time of day/year.
+                '''
+                movement_model = RandomMovement()
+                agent.step_distance, agent.turn_angle = movement_model.step()
+                agent.calc_next_point(agent.step_distance, agent.turn_angle) 
+
+            elif movement_method == 'HMM2':
+                '''
+                Use a hidden markov model to calculate behaviour states
+                and movement parameters.
+                '''
+                move_model = HMM_MoveModel_2_States() 
+
+                local_cover = landscape_funcs.get_nearby_pixels(agent, model, sense_range = deer_vision_range)
+
+                next_state, step_distance, turn_angle  = move_model.step(agent, local_cover)
+                agent.step_distance = step_distance
+                agent.step_angle = turn_angle
+
+                agent.calc_next_point(step_distance, turn_angle) 
                 agent.behaviour_state = next_state 
-            
-            else: #Use DLD Methods of states and steps
+
+
+            elif movement_method == 'HMM3':
+                '''
+                Use a hidden markov model to calculate behaviour states
+                and movement parameters.
+                '''
+                move_model = HMM_MoveModel_3_States() 
+
+                local_cover = landscape_funcs.get_nearby_pixels(agent, model, sense_range = deer_vision_range)
+
+                next_state, step_distance, turn_angle  = move_model.step(agent, local_cover)
+                agent.step_distance = step_distance
+                agent.step_angle = turn_angle
+
+                agent.calc_next_point(step_distance, turn_angle) 
+                agent.behaviour_state = next_state 
+
+            elif movement_method == 'DLD': 
+                # Calculate next step
+
+                local_cover = landscape_funcs.get_nearby_pixels(agent, model, sense_range = deer_vision_range)
+ 
+                # Get tick info
+                agent.timestamp = self.tick_time 
+                
+                # Calculate disease state
+                
+                #Use DLD Methods of states and steps
                 # Calculate next step
                 agent = behaviour.calculate_next_state(agent, local_cover, nearby_agents, params)
-                next_position = movement.step(agent, self.xy_resolution) 
-                
-                # Implement next step
-            self.move_agent(agent, next_position.x, next_position.y)
+                next_position = movement.step(agent, self.xy_resolution)  
+
+            else:
+                log.error('Unknown movement choice')
+                break 
+            self.move_agent(agent, agent.current_x, agent.current_y)
             if agent.is_dead:
                 dead_agents.append(agent)
 
@@ -408,18 +478,12 @@ class Model:
             y_proj = int(self.image_bounds.top) - y*self.xy_resolution[1]
 
             # Get centroid and project it to 5070
-            x_proj_centroid = agent.pos.centroid.x*self.xy_resolution[0] + int(self.image_bounds.left)
-            y_proj_centroid = int(self.image_bounds.top) - agent.pos.centroid.y*self.xy_resolution[1]
-
-            ## Calc local variables
-            local_cover, nearby_agents = landscape.get_nearby_items(agent, model, sense_range=int(self.params['deer']['deer_vision_range']))
-            suitable = behaviour.location_suitability(local_cover,nearby_agents, params)
-            
-            # Temp Data to add to csv for error checking
-            if grid_location is not None:
-                canopy_cover = self.canopy_layer.get(grid_location).item()
-            else:
-                canopy_cover = -1
+            x_proj_centroid = agent.centroid_x*self.xy_resolution[0] + int(self.image_bounds.left)
+            y_proj_centroid = int(self.image_bounds.top) - agent.centroid_y*self.xy_resolution[1]
+            return_angle = agent.heading_from_prev - agent.heading_to_centroid
+            # ## Calc local variables
+            # local_cover, nearby_agents = landscape.get_nearby_items(agent, model, sense_range=int(self.params['deer']['deer_vision_range']))
+            # suitable = behaviour.location_suitability(local_cover,nearby_agents, params)
 
             self.agent_logger.log_row(self.tick_time.isoformat(),
                                       agent.uuid, 
@@ -430,15 +494,19 @@ class Model:
                                     #   agent.has_homerange,
                                       x_proj,
                                       y_proj,
-                                    #   x_proj_centroid,
-                                    #   y_proj_centroid, 
+                                      x,
+                                      y,
+                                     agent.step_distance*self.xy_resolution[0],
+                                     agent.turn_angle,
+                                     agent.heading_from_prev,
+                                     return_angle,
                                     #   suitable, 
-                                    #   agent.behaviour_state, 
+                                      agent.behaviour_state, 
                                       agent.disease_state,
                                       #Temp data
                                     #   str(grid_location),
                                     #   len(nearby_agents),
-                                    #   agent.pos.step_distance*self.xy_resolution[0],
+                                    #   agent.step_distance*self.xy_resolution[0],
                                     #   agent.pos.turn_angle
                                       )
 
@@ -448,24 +516,11 @@ class Model:
 def setup_logging(params):
     '''
     Setup the logging for both Repast4Py as well as a normal python logger
-    '''
-
+    ''' 
     # Setup a command line logger.
     loglevel = params['logging']['loglevel']
     pylog.basicConfig(level=loglevel, format='%(asctime)s %(relativeCreated)6d %(threadName)s ::%(levelname)-8s %(message)s')
-    log = pylog.getLogger()
-
-    # if params.get('sim',{}).get('environment') == 'hopper':
-    #     # Only log ERROR's
-    #     log.setLevel('ERROR')
-
-    # elif params.get('sim',{}).get('environment') == 'local':
-    #     # Set Log level
-    #     log.setLevel(loglevel)
-    # else:
-    #     # Do not setup a command line logger.
-    #     log.setLevel('ERROR')
-    #     log.error('Unknown Environment...')
+    log = pylog.getLogger() 
 
     log.debug('Ready to log!')
     log.debug(f'Params: {params}')

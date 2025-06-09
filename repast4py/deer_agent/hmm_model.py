@@ -5,9 +5,7 @@ import random
 from dataclasses import dataclass
 from enum import Enum
 import datetime
-
-from . import time_functions
-from . import behaviour
+ 
 import logging as pylog # Repast logger is called as "logging"
 
 log = pylog.getLogger(__name__)
@@ -78,16 +76,16 @@ class BehaviourState_HMM():
 
         # Y[0] == Prob of changing state from 0 to 1
         # Y[1] == Prob of changing state from 1 to 0
-        if behaviour_state == behaviour.Behaviour_State.NORMAL:
+        if behaviour_state == Behaviour_State.NORMAL:
             if random.uniform(0, 1) < y[0]: 
-                next_state = behaviour.Behaviour_State.EXPLORE
+                next_state = Behaviour_State.EXPLORE
             else:
-                next_state = behaviour.Behaviour_State.NORMAL
+                next_state = Behaviour_State.NORMAL
         else: 
             if random.uniform(0, 1) < y[1]: 
-                next_state = behaviour.Behaviour_State.NORMAL
+                next_state = Behaviour_State.NORMAL
             else:
-                next_state = behaviour.Behaviour_State.EXPLORE
+                next_state = Behaviour_State.EXPLORE
         return next_state
     
     def choose_params(self, this_season, agent_is_male, behaviour_state):
@@ -126,8 +124,8 @@ class BehaviourState_HMM():
         # log.info(f'Agent is male? {agent_is_male}. Season: {this_season}. State: {behaviour_state}')
         if agent_is_male:
             # Males 
-            if this_season == time_functions.DeerSeasons.GESTATION:
-                if behaviour_state == behaviour.Behaviour_State.NORMAL:
+            if this_season == DeerSeasons.GESTATION:
+                if behaviour_state == Behaviour_State.NORMAL:
                     step_params = {"c":1.38666,
                                    "loc":1,
                                    "scale":29.142}
@@ -135,7 +133,7 @@ class BehaviourState_HMM():
                                    "loc":-3.123,
                                    "scale":1}
                 
-                elif behaviour_state == behaviour.Behaviour_State.EXPLORE:
+                elif behaviour_state == Behaviour_State.EXPLORE:
                     step_params = {"c":1.0378,
                                    "loc":1,
                                    "scale":147.7976}
@@ -143,8 +141,8 @@ class BehaviourState_HMM():
                                    "loc":0.1,
                                    "scale":1}
                     
-            elif this_season == time_functions.DeerSeasons.FAWNING:
-                if behaviour_state == behaviour.Behaviour_State.NORMAL:
+            elif this_season == DeerSeasons.FAWNING:
+                if behaviour_state == Behaviour_State.NORMAL:
                     step_params = {"c":1.38666,
                                    "loc":1,
                                    "scale":29.142}
@@ -152,14 +150,14 @@ class BehaviourState_HMM():
                                    "loc":-3.123,
                                    "scale":1}
                 
-                elif behaviour_state == behaviour.Behaviour_State.EXPLORE:
+                elif behaviour_state == Behaviour_State.EXPLORE:
                     step_params = {"c":1.0378,
                                    "loc":1,
                                    "scale":147.7976}
                     turn_params = {"c":0.04,
                                    "loc":0.1,
                                    "scale":1}
-            elif this_season == time_functions.DeerSeasons.PRERUT:
+            elif this_season == DeerSeasons.PRERUT:
                 if behaviour_state == 0:
                     step_params = {"c":1.38666,
                                    "loc":1,
@@ -168,15 +166,15 @@ class BehaviourState_HMM():
                                    "loc":-3.123,
                                    "scale":1}
                 
-                elif behaviour_state == behaviour.Behaviour_State.EXPLORE:
+                elif behaviour_state == Behaviour_State.EXPLORE:
                     step_params = {"c":1.0378,
                                    "loc":1,
                                    "scale":147.7976}
                     turn_params = {"c":0.04,
                                    "loc":0.1,
                                    "scale":1}
-            elif this_season == time_functions.DeerSeasons.RUT:
-                if behaviour_state == behaviour.Behaviour_State.NORMAL:
+            elif this_season == DeerSeasons.RUT:
+                if behaviour_state == Behaviour_State.NORMAL:
                     step_params = {"c":1.38666,
                                    "loc":1,
                                    "scale":29.142}
@@ -184,7 +182,7 @@ class BehaviourState_HMM():
                                    "loc":-3.123,
                                    "scale":1}
                 
-                elif behaviour_state == behaviour.Behaviour_State.EXPLORE:
+                elif behaviour_state == Behaviour_State.EXPLORE:
                     step_params = {"c":1.0378,
                                    "loc":1,
                                    "scale":147.7976}
@@ -193,8 +191,8 @@ class BehaviourState_HMM():
                                    "scale":1}
         else:
             # Females
-            if this_season == time_functions.DeerSeasons.GESTATION:
-                if behaviour_state == behaviour.Behaviour_State.NORMAL:
+            if this_season == DeerSeasons.GESTATION:
+                if behaviour_state == Behaviour_State.NORMAL:
                     step_params = {"c":1.38666,
                                    "loc":1,
                                    "scale":29.142}
@@ -202,7 +200,7 @@ class BehaviourState_HMM():
                                    "loc":-3.123,
                                    "scale":1}
                 
-                elif behaviour_state == behaviour.Behaviour_State.EXPLORE:
+                elif behaviour_state == Behaviour_State.EXPLORE:
                     step_params = {"c":1.0378,
                                    "loc":1,
                                    "scale":147.7976}
@@ -210,8 +208,8 @@ class BehaviourState_HMM():
                                    "loc":0.1,
                                    "scale":1}
                     
-            elif this_season == time_functions.DeerSeasons.FAWNING:
-                if behaviour_state == behaviour.Behaviour_State.NORMAL:
+            elif this_season == DeerSeasons.FAWNING:
+                if behaviour_state == Behaviour_State.NORMAL:
                     step_params = {"c":1.38666,
                                    "loc":1,
                                    "scale":29.142}
@@ -219,15 +217,15 @@ class BehaviourState_HMM():
                                    "loc":-3.123,
                                    "scale":1}
                 
-                elif behaviour_state == behaviour.Behaviour_State.EXPLORE:
+                elif behaviour_state == Behaviour_State.EXPLORE:
                     step_params = {"c":1.0378,
                                    "loc":1,
                                    "scale":147.7976}
                     turn_params = {"c":0.04,
                                    "loc":0.1,
                                    "scale":1}
-            elif this_season == time_functions.DeerSeasons.PRERUT:
-                if behaviour_state == behaviour.Behaviour_State.NORMAL:
+            elif this_season == DeerSeasons.PRERUT:
+                if behaviour_state == Behaviour_State.NORMAL:
                     step_params = {"c":1.38666,
                                    "loc":1,
                                    "scale":29.142}
@@ -235,15 +233,15 @@ class BehaviourState_HMM():
                                    "loc":-3.123,
                                    "scale":1}
                 
-                elif behaviour_state == behaviour.Behaviour_State.EXPLORE:
+                elif behaviour_state == Behaviour_State.EXPLORE:
                     step_params = {"c":1.0378,
                                    "loc":1,
                                    "scale":147.7976}
                     turn_params = {"c":0.04,
                                    "loc":0.1,
                                    "scale":1}
-            elif this_season == time_functions.DeerSeasons.RUT:
-                if behaviour_state == behaviour.Behaviour_State.NORMAL:
+            elif this_season == DeerSeasons.RUT:
+                if behaviour_state == Behaviour_State.NORMAL:
                     step_params = {"c":1.38666,
                                    "loc":1,
                                    "scale":29.142}
@@ -251,7 +249,7 @@ class BehaviourState_HMM():
                                    "loc":-3.123,
                                    "scale":1}
                 
-                elif behaviour_state == behaviour.Behaviour_State.EXPLORE:
+                elif behaviour_state == Behaviour_State.EXPLORE:
                     step_params = {"c":1.0378,
                                    "loc":1,
                                    "scale":147.7976}
@@ -289,7 +287,7 @@ class BehaviourState_HMM():
         When given a distance and angle calculate the X and Y coords of it
         when starting from a current position. 
         ''' 
-        this_season = time_functions.check_time_of_year(agent.timestamp)
+        this_season = check_time_of_year(agent.timestamp)
 
         next_state = self.choose_next_state(agent.behaviour_state, local_cover)  
         step_params,turn_params = self.choose_params(this_season, agent.is_male, next_state)  

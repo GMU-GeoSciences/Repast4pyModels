@@ -9,7 +9,7 @@ import numpy as np
 
 import logging as pylog # Repast logger is called as "logging" 
 
-from . import behaviour
+from .behaviour import *
 
 
 log = pylog.getLogger(__name__)
@@ -80,7 +80,7 @@ def check_infection_chance(agent, nearby_agents_list, params, resolution):
     infectious_range = float(params['deer_control_vars']['disease']['infectious_range'])
     # log.info(f'   -- {len(nearby_agents_list)} nearby other agents...')
     for other_agent in nearby_agents_list:
-        distance_to_other = np.sqrt(np.square(agent.pos.current_point.x - other_agent.pos.current_point.x) + np.square(agent.pos.current_point.y - other_agent.pos.current_point.y))*resolution
+        distance_to_other = np.sqrt(np.square(agent.current_x - other_agent.current_x) + np.square(agent.current_y - other_agent.current_y))*resolution
         if (other_agent.disease_state == Disease_State.INFECTED): 
             if rndm.random() < infection_chance: 
                 if distance_to_other < infectious_range:  

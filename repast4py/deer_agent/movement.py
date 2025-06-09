@@ -5,8 +5,7 @@ from dataclasses import dataclass
 from enum import Enum
 import datetime
 
-from . import time_functions
-from . import behaviour
+from . import behaviour, time_functions
 
 '''
 This controls the stepping distances and angles
@@ -80,8 +79,8 @@ class Position_Vector:
     heading_to_centroid: float = 0.0
     distance_to_centroid: float = 0.0
     heading_from_prev: float = 0.0
-    step_distance = 0.0
-    turn_angle = 0.0
+    step_distance: float = 0.0
+    turn_angle: float = 0.0
 
     def __post_init__(self):
         self.calc_dist_and_angle()
@@ -133,14 +132,16 @@ def step(agent, xy_resolution):
     step_params = choose_params(agent.timestamp)
     #TODO: Handle edge case of where xy_resolution[0] != xy_resolution[1]
     # Why am I dividing by the resolution and why does it work?
-    step_distance = calculate_random_step(step_params)/ xy_resolution[0] 
-    step_angle = calculate_random_turn(agent)
-    current_pos = agent.pos.current_point
+    agent.step_distance = calculate_random_step(step_params)/ xy_resolution[0] 
+    agent.step_angle = calculate_random_turn(agent)
     
     # Update the distances and angles:
-    next_position = agent.pos.calc_next_point(current_pos, step_distance, step_angle) 
+    next_position = agent.calc_next_point(agent.step_distance, agent.step_angle) 
 
     return next_position
+
+
+### TODO: These should be in the DLD section. Not movement specific...
 
 def choose_params(timestamp):
     this_season = time_functions.check_time_of_year(timestamp)
@@ -181,22 +182,22 @@ def calculate_random_turn(agent):
         https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.wrapcauchy.html#scipy.stats.wrapcauchy
     ''' 
     # TODO: Not using the distance from centroid? 
-    distance_from_centroid = agent.pos.distance_to_centroid
+    # distance_from_centroid = agent.something
 
     if agent.behaviour_state == behaviour.Behaviour_State.NORMAL:
-        u_t = agent.pos.heading_to_centroid
+        u_t = agent.heading_to_centroid
         p_t = 0.5
         
     elif agent.behaviour_state == behaviour.Behaviour_State.DISPERSE:
-        u_t = agent.pos.heading_from_prev
+        u_t = agent.heading_from_prev
         p_t = 0.5
 
     elif agent.behaviour_state == behaviour.Behaviour_State.MATING:
-        u_t = agent.pos.heading_to_centroid
+        u_t = agent.heading_to_centroid
         p_t = 0.5
 
     elif agent.behaviour_state == behaviour.Behaviour_State.EXPLORE:
-        u_t = agent.pos.heading_from_prev
+        u_t = agent.heading_from_prev
         p_t = 0.5
     
     turn_angle = wrapcauchy.rvs(p_t, loc = u_t, scale = 1) 
