@@ -116,7 +116,10 @@ class Position_Vector:
 
         Turn Angle = Angle(Prev, Current) - Angle(Current, Next)
         '''
-        self.calc_dist_and_angle()
+        try:
+            self.calc_dist_and_angle()
+        except Exception as err:
+            log.warning(err)
 
         next_x = intial_point.x + step_distance*np.sin(turn_angle)
         next_y = intial_point.y + step_distance*np.cos(turn_angle)
@@ -124,7 +127,7 @@ class Position_Vector:
         next_point = Point(next_x,next_y)
         return next_point
 
-def step(agent, xy_resolution):
+def step(agent, xy_resolution,image_bounds):
     '''
     When given a distance and angle calculate the X and Y coords of it
     when starting from a current position. 
@@ -136,8 +139,7 @@ def step(agent, xy_resolution):
     agent.step_angle = calculate_random_turn(agent)
     
     # Update the distances and angles:
-    next_position = agent.calc_next_point(agent.step_distance, agent.step_angle) 
-
+    next_position = agent.calc_next_point(xy_resolution,image_bounds)  
     return next_position
 
 

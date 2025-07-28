@@ -10,6 +10,7 @@ import os
 import pathlib
 
 import random as rndm
+import math
 import torch
 
 from repast4py import core, random, space, schedule, logging, parameters
@@ -26,7 +27,7 @@ from landscape import fetch_img, landscape_funcs
 
 from deer_agent.movement_basic import BaseMoveModel, RandomMovement
 from deer_agent.movement_dld import DLD_MoveModel
-from deer_agent.movement_hmm import HMM_MoveModel_2_States, HMM_MoveModel_3_States
+from deer_agent.movement_hmm import HMM_MoveModel_2_States, HMM_MoveModel_3_States, HMM_MoveModel_3_States_Canopy_Gender
 from deer_agent import movement
 from deer_agent.disease import *
 from deer_agent.time_functions import *
@@ -134,43 +135,44 @@ class Model:
         # Setup the grids, read a raster file in, 
         # and transfer it into a shared_value array
         self.setup_repast_spatial()
-          
-        # Setup the instrumentation to measure the outputs of the sim 
-        self.agent_logger = logging.TabularLogger(comm, 
-                                                  self.params.get('logging',{}).get('agent_log_file'), 
-                                                  ['Timestamp', 
-                                                   'UUID',  
-                                                #    'UID',
-                                                #    'Rank',
-                                                #    'Is Male',
-                                                #    'Is Fawn',
-                                                #    'Has HomeRange',
-                                                   'x_proj', 'y_proj', 
-                                                   'x', 'y', 
-                                                   'step', 'turn',  
-                                                   'Movement Bearing', 
-                                                   'turn_home',
-                                                   'Behaviour State', 
-                                                   'Disease State',
-                                                #    'grid_location',
-                                                #    'NearbyOtherAgentCount',
-                                                #    'step_distance',
-                                                #    'turn_angle'
-                                                   ])
+        self.setup_logging()
  
         # Initialise agents
+        ##################################################
         total_agent_count = self.params.get('deer',{}).get('pop_size')
         world_size = comm.Get_size()
         agents_per_rank = int(total_agent_count / world_size)
         if self.rank < total_agent_count % world_size:
             agents_per_rank += 1
-
         log.debug(f"Creating {total_agent_count} deer agents over {world_size} nodes ({agents_per_rank} agents/node)...")
         
         ## Creating count_per_rank agents on this node
-        for this_agent_id in range(agents_per_rank):
-            self.add_agent(this_agent_id) 
+        this_agent_id = 0
+        while this_agent_id < agents_per_rank:
+            #keep trying to add agents into the simulation until the correct amount is achieved. 
+            agent = self.add_agent(this_agent_id)
+            deer_vision_range = int(self.params['deer']['deer_vision_range'])  
+            grid_range = math.ceil(200 / self.xy_resolution[0])
+            x_es = range(int(agent.centroid_x) - grid_range, int(agent.centroid_x) + grid_range)
+            y_es = range(int(agent.centroid_y) - grid_range, int(agent.centroid_y) + grid_range)
+            local_array = np.zeros(shape=(len(x_es), len(y_es)), dtype=int) # Empty array for sense_range pixels around the agent
+            for i in x_es:
+              for j in y_es:  
+                local_array[i - min(x_es), j - min(y_es)] = self.canopy_layer.get(dpt(i,j)).item()
+                
+            good_hr = location_suitability(local_array, params) 
+            if good_hr:
+                self.contexts['deer'].add(agent)
+                self.move_agent(agent,agent.centroid_x,agent.centroid_y)
+                this_agent_id += 1
+            else:
+                agent = None
+        ##################################################
 
+    def check_agent_starting_location(self,agent):
+        '''
+        Check that the agent starting location is good:
+        '''
     def setup_repast_spatial(self):
         '''
         Return a shared grid, shared continuous space and a shared value layer/s
@@ -261,10 +263,7 @@ class Model:
         log.info(f'Cleaning up simulation...')
         self.end_start_timestamp = datetime.datetime.now()
         self.agent_logger.close()
-        self.log_model_info()
-        #Convert csv file to geopackage to make viz easier
-        # log.info(f'  -Converting to geopackage...')
-        # fetch_img.csv_to_gpkg(self.params) # how to do this only once? 
+        self.log_model_info() 
         return
     
 
@@ -305,19 +304,22 @@ class Model:
         Add agent to the sim located at Point(x,y).
         If no location specified then place randomly in local bounds.
         '''
-        local_bounds = self.shared_space.get_local_bounds()    
+        local_bounds = self.shared_space.get_local_bounds()
         if (x is None) or (y is None): 
-            #TODO place the deer in a non random way, as a function of the suitability raster
+            # If no coords given, place it semi-randomly. 
             x = random.default_rng.uniform(local_bounds.xmin, local_bounds.xmin + local_bounds.xextent)
             y = random.default_rng.uniform(local_bounds.ymin, local_bounds.ymin + local_bounds.yextent)
-        
+            
         agent = deer_agent.agent.DeerAgent(id, self.rank) 
         deer_cfg = deer_agent.agent.Deer_Config()  
         deer_cfg_object = deer_cfg.rand_factory(x,y,params)
         agent.set_cfg(deer_cfg_object)
+
+        ## Assign first place as agent home range centroid. Need to find a better way of doing this.
+        agent.centroid_x = x
+        agent.centroid_y = y
         log.debug(f'Creating Rank:Agent {self.rank}:{agent.id}.') 
-        self.contexts['deer'].add(agent)
-        self.move_agent(agent,x,y)
+        return agent
 
     def remove_agent(self, agent):
         '''
@@ -332,12 +334,7 @@ class Model:
         Agents move in space over one tick
         '''
         log.debug(f'Moving agent {self.rank}:{agent.id} to Point({x},{y})...')
-
-        location = self.shared_space.get_location(agent)
-        # if location is not None:
-        #     agent.last_point.x = copy(location.x)
-        #     agent.plast_point.y = copy(location.y)
-
+ 
         self.shared_space.move(agent, cpt(x,y))
         self.grid.move(agent, dpt(int(x),int(y)))
 
@@ -367,19 +364,22 @@ class Model:
             
             # Calculate disease state
             # nearby_agents = landscape.get_nearby_agents(agent, model, sense_range = deer_vision_range)
-            nearby_agents = landscape_funcs.get_nearby_grid_agents(agent, model, sense_range = deer_vision_range)
-            agent = check_disease_state(agent, nearby_agents, params, resolution = model.xy_resolution[0])
+            # This nearby_agnets call is causing trouble with the HMM models... Why?  
+            nearby_agents = landscape_funcs.get_nearby_grid_agents(agent, self, sense_range = deer_vision_range)
+            agent = check_disease_state(agent, nearby_agents, params, resolution = self.xy_resolution[0])
 
             # Calculate behaviour states, and movement based off a 
             # model method specified in the config.
             # TODO: these movement models should have a single style of input/output
             # and be attached to the agent class during agent init.
             movement_method = self.params['deer_control_vars']['movement_method']['method']
-            if movement_method == 'still':
+            if movement_method == 'basic':
                 '''
                 agents do not move.
                 '''
-                next_position = agent.pos 
+                movement_model = BaseMoveModel()
+                agent.step_distance, agent.turn_angle = movement_model.step()
+                agent.calc_next_point(self.xy_resolution, self.image_bounds)#agent.step_distance, agent.turn_angle) 
 
             elif movement_method == 'random':
                 '''
@@ -388,7 +388,7 @@ class Model:
                 '''
                 movement_model = RandomMovement()
                 agent.step_distance, agent.turn_angle = movement_model.step()
-                agent.calc_next_point(agent.step_distance, agent.turn_angle) 
+                agent.calc_next_point(self.xy_resolution, self.image_bounds)#agent.step_distance, agent.turn_angle) 
 
             elif movement_method == 'HMM2':
                 '''
@@ -398,12 +398,13 @@ class Model:
                 move_model = HMM_MoveModel_2_States() 
 
                 local_cover = landscape_funcs.get_nearby_pixels(agent, model, sense_range = deer_vision_range)
+                # local_cover = np.ones((deer_vision_range,deer_vision_range))
 
                 next_state, step_distance, turn_angle  = move_model.step(agent, local_cover)
                 agent.step_distance = step_distance
-                agent.step_angle = turn_angle
+                agent.turn_angle = turn_angle
 
-                agent.calc_next_point(step_distance, turn_angle) 
+                agent.calc_next_point(self.xy_resolution, self.image_bounds)#step_distance, turn_angle) 
                 agent.behaviour_state = next_state 
 
 
@@ -418,9 +419,27 @@ class Model:
 
                 next_state, step_distance, turn_angle  = move_model.step(agent, local_cover)
                 agent.step_distance = step_distance
-                agent.step_angle = turn_angle
+                agent.turn_angle = turn_angle
 
-                agent.calc_next_point(step_distance, turn_angle) 
+                agent.calc_next_point(self.xy_resolution, self.image_bounds)#step_distance, turn_angle) 
+                agent.behaviour_state = next_state 
+
+            elif movement_method == 'HMM3_Canopy':
+                '''
+                Use a hidden markov model to calculate behaviour states
+                and movement parameters. That considers the CAnopy raster as the covariate.
+                '''
+                move_model = HMM_MoveModel_3_States_Canopy_Gender()
+                move_model.home_range_radius = int(self.params['deer_control_vars']['homerange']['radius']) 
+                move_model.turn_choices =  int(self.params['deer_control_vars']['homerange']['turn_choices']) 
+
+                local_cover = landscape_funcs.get_nearby_pixels(agent, model, sense_range = deer_vision_range)
+
+                next_state, step_distance, turn_angle  = move_model.step(agent, local_cover)
+                agent.step_distance = step_distance
+                agent.turn_angle = turn_angle
+                
+                agent.calc_next_point(self.xy_resolution, self.image_bounds)
                 agent.behaviour_state = next_state 
 
             elif movement_method == 'DLD': 
@@ -436,7 +455,7 @@ class Model:
                 #Use DLD Methods of states and steps
                 # Calculate next step
                 agent = behaviour.calculate_next_state(agent, local_cover, nearby_agents, params)
-                next_position = movement.step(agent, self.xy_resolution)  
+                next_position = movement.step(agent, self.xy_resolution, self.image_bounds)  
 
             else:
                 log.error('Unknown movement choice')
@@ -451,6 +470,35 @@ class Model:
         self.log_metrics(tick)
         return
     
+    def setup_logging(self):
+        # Setup the instrumentation to measure the outputs of the sim 
+        self.agent_logger = logging.TabularLogger(self.comm, 
+                                                  self.params.get('logging',{}).get('agent_log_file'), 
+                                                  ['Timestamp', 
+                                                   'UUID',  
+                                                #    'UID',
+                                                #    'Rank',
+                                                   'Is Male',
+                                                #    'Is Fawn',
+                                                #    'Has HomeRange',
+                                                #    'x_array', 'y_array', 
+                                                   'x', 'y', 
+                                                #    'x_c_array', 'y_c_array', 
+                                                   'x_centroid', 'y_centroid', 
+                                                   'step', 'turn',  
+                                                   'heading_from_prev', 
+                                                   'turn_to_centroid',
+                                                   'heading_to_centroid',
+                                                   'Behaviour State', 
+                                                   'Disease State',
+                                                #    'grid_location',
+                                                #    'NearbyOtherAgentCount',
+                                                #    'step_distance',
+                                                #    'turn_angle'
+                                                   ])
+        return
+    
+
     def log_metrics(self, tick):
         '''
         Log the outputs of the tick to a file.
@@ -464,7 +512,7 @@ class Model:
 
         for agent in self.contexts['deer'].agents():
             cont_location = self.shared_space.get_location(agent)
-            grid_location = self.grid.get_location(agent) 
+            # grid_location = self.grid.get_location(agent) 
 
             if cont_location is not None:
                 x = cont_location.x  # There is a small offset between raster values and agent locations shown in QGIS
@@ -473,33 +521,31 @@ class Model:
                 x = -1
                 y = -1
 
-            # Scale location back to a 5070 projection.  
-            x_proj = x*self.xy_resolution[0] + int(self.image_bounds.left)
-            y_proj = int(self.image_bounds.top) - y*self.xy_resolution[1]
-
+            # Scale location back to a 5070 projection.   
+            x_proj, y_proj = agent.repast_to_proj(x,y, self.xy_resolution, self.image_bounds)
             # Get centroid and project it to 5070
-            x_proj_centroid = agent.centroid_x*self.xy_resolution[0] + int(self.image_bounds.left)
-            y_proj_centroid = int(self.image_bounds.top) - agent.centroid_y*self.xy_resolution[1]
-            return_angle = agent.heading_from_prev - agent.heading_to_centroid
-            # ## Calc local variables
-            # local_cover, nearby_agents = landscape.get_nearby_items(agent, model, sense_range=int(self.params['deer']['deer_vision_range']))
-            # suitable = behaviour.location_suitability(local_cover,nearby_agents, params)
+            x_proj_centroid, y_proj_centroid = agent.repast_to_proj(agent.centroid_x, agent.centroid_y,self.xy_resolution, self.image_bounds) 
+            turn_to_centroid = agent.heading_from_prev - agent.heading_to_centroid #Calculate the turn angle that would take you back to the centroid
 
+            log.debug(' -- Writing to log...')
             self.agent_logger.log_row(self.tick_time.isoformat(),
                                       agent.uuid, 
                                     #   agent.uid, 
                                     #   agent.uid[2], #rank
-                                    #   agent.is_male,
-                                    #   agent.is_fawn,
-                                    #   agent.has_homerange,
+                                      agent.is_male,
+                                    #   x,
+                                    #   y,
                                       x_proj,
                                       y_proj,
-                                      x,
-                                      y,
+                                    # agent.centroid_x,
+                                    # agent.centroid_y,
+                                      x_proj_centroid,
+                                      y_proj_centroid,
                                      agent.step_distance*self.xy_resolution[0],
-                                     agent.turn_angle,
-                                     agent.heading_from_prev,
-                                     return_angle,
+                                     np.degrees(agent.turn_angle),
+                                     np.degrees(agent.heading_from_prev), 
+                                     np.degrees(turn_to_centroid),
+                                     np.degrees(agent.heading_to_centroid),
                                     #   suitable, 
                                       agent.behaviour_state, 
                                       agent.disease_state,
@@ -509,8 +555,9 @@ class Model:
                                     #   agent.step_distance*self.xy_resolution[0],
                                     #   agent.pos.turn_angle
                                       )
-
+    
         self.agent_logger.write()
+        log.debug(' -- Finished writing to log.')
         return
 
 def setup_logging(params):

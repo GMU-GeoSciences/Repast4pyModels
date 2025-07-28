@@ -112,7 +112,7 @@ def establish_homerange(agent):
     return agent
 
 
-def location_suitability(local_array, nearby_agents, params):
+def location_suitability(local_array, params):
     '''
     Check whether local conditions are good for the deer agent.
     '''
@@ -136,7 +136,7 @@ def calculate_next_state(agent, local_cover, nearby_agents, params):
     '''  
     time_of_year = time_functions.check_time_of_year(agent.timestamp)
     agent = time_functions.check_age(agent, params) 
-    good_hr = location_suitability(local_cover, nearby_agents, params) 
+    good_hr = location_suitability(local_cover, params) 
 
     ############### NORMAL ############### 
     if agent.behaviour_state == Behaviour_State.NORMAL:
