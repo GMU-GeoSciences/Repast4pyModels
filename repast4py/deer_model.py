@@ -169,10 +169,9 @@ class Model:
                 agent = None
         ##################################################
 
-    def check_agent_starting_location(self,agent):
-        '''
-        Check that the agent starting location is good:
-        '''
+ 
+
+        
     def setup_repast_spatial(self):
         '''
         Return a shared grid, shared continuous space and a shared value layer/s
