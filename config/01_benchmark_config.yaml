@@ -5,53 +5,36 @@
 geo: 
   # Envelope for grid/continuous space for the simulation. Must be integers
   # # Howard County:
-  # x_min: 1595916
-  # x_max: 1641113
-  # y_min: 1952151
-  # y_max: 1979392
- 
-  # Small Corner of Howard County:
-  x_min: 1616000
-  x_max: 1629000
-  y_min: 1962000
-  y_max: 1973000
+  x_min: 1595916
+  x_max: 1641113
+  y_min: 1952151
+  y_max: 1979392
+  
 
-  # tiff_path: ./input/images/2019_CONUS_Canopy.tiff #in relation to project root dir
-  tiff_path: ./input/images/RSF_suitability_classes_5070_resample.tif #in relation to project root dir
+  tiff_path: ./input/images/2019_CONUS_Canopy.tiff #in relation to project root dir
   buffer_size: 50 # max number of pixels that an agent can move in a single tick
  
 time: 
-  start_time: "2000-01-01T00:00:00" #ISO 8601 Timestamp
+  start_time: "2000-01-01T00:00:00" #ISO 8601 Timestamp. Start date of Simulation
   hours_per_tick: 1
-  end_tick: 743
+  end_tick: 741  # End of sim = start_time + end_tick*hours_per_tick
  
-logging:
-  # loglevel: DEBUG # can be DEBUG, INFO, WARNING, ERROR
-  loglevel: INFO
-  # loglevel: WARNING
-  # loglevel: ERROR
-  agent_log_file: './output/hmm2state.csv'
-  model_meta_file: './output/hmm2state.json'
-  gpkg_log_file: './output/hmm2state.gpkg' 
+logging: 
+  loglevel: INFO # can be DEBUG, INFO, WARNING, ERROR
+  agent_log_file: './output/ex1_run1.csv'
+  model_meta_file: './output/ex1_run1.json'
+  gpkg_log_file: './output/ex1_run1.gpkg'
+  centroid_log_file: './output/ex1_run1.gpkg'
 
 # https://columbiaassociation.org/open-space/oh-deer-tips-and-tricks-for-living-with-deer-in-columbia/#:~:text=The%20Howard%20County%20Department%20of,15%20deer%20per%20square%20mile.
 deer:
-  pop_size: 1000  # Number of deer agents to simulate  
+  pop_size: 100  # Number of deer agents to simulate  
   deer_vision_range: 400 # [meters]. Edge length of vision square surrounding agent. Used for finding nearby agents and home range suitability
 
 deer_control_vars:  # From https://www.researchgate.net/publication/363077733_The_effect_of_landscape_transmission_mode_and_social_behavior_on_disease_transmission_Simulating_the_transmission_of_chronic_wasting_disease_in_white-tailed_deer_Odocoileus_virginianus_populations_usi
-  movement_method: # Uncomment ONE of the below movement methods.
-    # method: DLD # DLD method used to calculate behaviour states and movement distributions
-    method: HMM2 # Hidden MArkov Model movement model
-    # method: still # No movement, agents do not move.
-    # method: random # Agents move purely randomly. No concern for time, behaviour states or landscape
-    dld_method:
-      some_vars: 1
-    hmm_method: 
-      some_vars: 1
-      use_centroid: True # If true use centroid in turning angle calculations
-    random_method:
-      some_vars: 1
+  movement_method: # Movement model to use. Can be DLD, HMM2, HMM3, HMM3_Canopy, still, or random 
+    method: HMM3_Canopy # Hidden Markov Model movement model. Trained for Canopy.tiff (and not the suitability.tiff) and has different models for gender.  
+  # DLD Params. Should probably move these somewhere better in the config file.
   explore_chance:
     gestation: 0.032
     fawning: 0.008
@@ -87,10 +70,14 @@ deer_control_vars:  # From https://www.researchgate.net/publication/363077733_Th
     adult_max: 100000 # days. Max age of agents
     male_disperse_prob: 0.7 # (Hawkins et al., 1971; Nixon et al., 2007, 1994; Rosenberry et al., 1999) 
     female_disperse_prob: 0.2 # (Hawkins et al., 1971; Nixon et al., 2007, 1994; Rosenberry et al., 1999) 
+  
+  # Homerange Params
   homerange:
+    radius: 1000 #[meters] Used in HMM3_Canopy models. Agents beyond this range from home-range centroid choose angles that take them back home 
+    turn_choices: 8 #Number of random choices to choose from. When agent is outside radius, create X number of turns and choose the one that is closest to return-to-centroid angle.
     max: 100
     min: 40
-    suitability_threshold: 80
+    suitability_threshold: 80 
   disease:
   # Susceptible > Infected > Recovered/Dead > Susceptible
     infectious_range: 200 # NOTE: MUST be <= than 0.5*"deer_vision"! How close [meters] must an agent be to another infected agent to check for infection chance. 

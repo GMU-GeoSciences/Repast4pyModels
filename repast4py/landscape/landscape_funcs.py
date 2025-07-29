@@ -30,13 +30,13 @@ def get_nearby_grid_agents(agent, model, sense_range = 100):
     ''' 
     # agents = model.grid.get_agents(dpt(i,j))
     # agents = [agent for agent in agents if not this_agent] 
-
+    log.debug('  -Getting nearby other agents...')
     grid_range = math.ceil(sense_range / model.xy_resolution[0]) #Turn meters into pixels
 
     location = model.shared_space.get_location(agent)
     bbox = BoundingBox(int(location.x) - grid_range, 2*grid_range,
                        int(location.y) - grid_range, 2*grid_range)
-    
+    log.debug(f'  -Local BBOX: {bbox}')
     other_agents = model.shared_space.get_agents_within(bbox)
     other_agents = [other_agent for other_agent in other_agents if other_agent != agent] 
  
@@ -132,7 +132,4 @@ def get_nearby_items(agent, model, sense_range = 100):
             local_array[i - min(x_es), j - min(y_es)] = get_pixel_value(model.canopy_layer, i,j)
 
     return local_array, local_agents
-
-
-
-
+ 

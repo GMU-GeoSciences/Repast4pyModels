@@ -78,63 +78,63 @@ class Position_Vector:
     step_distance: float = 0.0
     turn_angle: float = 0.0
 
-    def __post_init__(self):
-        self.calc_dist_and_angle()
+    # def __post_init__(self):
+    #     self.calc_dist_and_angle()
 
-    def calc_dist_and_angle(self):
+    # def calc_dist_and_angle(self):
         
-        '''
-        Calculate the distance and angle to centroid
-        using euclidean maths. Great circle be damned!
-        https://stackoverflow.com/questions/1401712/how-can-the-euclidean-distance-be-calculated-with-numpy
-        https://stackoverflow.com/questions/31735499/calculate-angle-clockwise-between-two-points
+    #     '''
+    #     Calculate the distance and angle to centroid
+    #     using euclidean maths. Great circle be damned!
+    #     https://stackoverflow.com/questions/1401712/how-can-the-euclidean-distance-be-calculated-with-numpy
+    #     https://stackoverflow.com/questions/31735499/calculate-angle-clockwise-between-two-points
 
-        Need to do some fiddling to get North as 0 degrees
-        '''
-        a = np.array((self.current_point.x, self.current_point.y, self.current_point.z))
-        b = np.array((self.centroid.x, self.centroid.y, self.centroid.z))
-        self.distance_to_centroid = np.linalg.norm(a-b)
+    #     Need to do some fiddling to get North as 0 degrees
+    #     '''
+    #     a = np.array((self.current_point.x, self.current_point.y, self.current_point.z))
+    #     b = np.array((self.centroid.x, self.centroid.y, self.centroid.z))
+    #     self.distance_to_centroid = np.linalg.norm(a-b)
         
-        dx = self.centroid.x - self.current_point.x
-        dy = self.centroid.y - self.current_point.y
-        angle_radians = np.arctan2(dx, dy)
-        self.heading_to_centroid = (angle_radians) % (2 * np.pi) # Compass direction of travel between current_pos and centroid 
+    #     dx = self.centroid.x - self.current_point.x
+    #     dy = self.centroid.y - self.current_point.y
+    #     angle_radians = np.arctan2(dx, dy)
+    #     self.heading_to_centroid = (angle_radians) % (2 * np.pi) # Compass direction of travel between current_pos and centroid 
 
-        dx = self.current_point.x - self.last_point.x
-        dy = self.current_point.y - self.last_point.y
-        angle_radians = np.arctan2(dx, dy)
-        self.heading_from_prev = (angle_radians) % (2 * np.pi) # Compass direction of travel between last_pos and current_pos 
-        return
+    #     dx = self.current_point.x - self.last_point.x
+    #     dy = self.current_point.y - self.last_point.y
+    #     angle_radians = np.arctan2(dx, dy)
+    #     self.heading_from_prev = (angle_radians) % (2 * np.pi) # Compass direction of travel between last_pos and current_pos 
+    #     return
     
-    def calc_next_point(self, initial_point, step_distance, turn_angle):
-        '''
-        When given a distance and angle calculate the X and Y coords of it
-        when starting from a current position. 
+    # def calc_next_point(self, initial_point, step_distance, turn_angle):
+    #     '''
+    #     When given a distance and angle calculate the X and Y coords of it
+    #     when starting from a current position. 
 
-        Turn Angle = Angle(Prev, Current) - Angle(Current, Next)
-        '''
-        self.calc_dist_and_angle()
+    #     Turn Angle = Angle(Prev, Current) - Angle(Current, Next)
+    #     '''
+    #     self.calc_dist_and_angle()
 
-        next_x = initial_point.x + step_distance*np.sin(turn_angle)
-        next_y = initial_point.y + step_distance*np.cos(turn_angle)
+    #     next_x = initial_point.x + step_distance*np.sin(turn_angle)
+    #     next_y = initial_point.y + step_distance*np.cos(turn_angle)
         
-        next_point = Point(next_x,next_y)
-        return next_point
+    #     next_point = Point(next_x,next_y)
+    #     return next_point
 
-def step(agent, xy_resolution):
-    '''
-    When given a distance and angle calculate the X and Y coords of it
-    when starting from a current position. 
-    '''
-    step_params = choose_params(agent.timestamp)
-    #TODO: Handle edge case of where xy_resolution[0] != xy_resolution[1]
-    agent.pos.step_distance = calculate_random_step(step_params)/ xy_resolution[0] 
-    agent.pos.step_angle = calculate_random_turn(agent) 
+# def step(agent, xy_resolution):
+#     '''
+#     When given a distance and angle calculate the X and Y coords of it
+#     when starting from a current position. 
+#     '''
+#     step_params = choose_params(agent.timestamp)
+#     #TODO: Handle edge case of where xy_resolution[0] != xy_resolution[1]
+#     agent.pos.step_distance = calculate_random_step(step_params)/ xy_resolution[0] 
+#     agent.pos.step_angle = calculate_random_turn(agent) 
     
-    # Update the distances and angles:
-    next_position = agent.pos.calc_next_point(agent.pos.current_point, agent.pos.step_distance, agent.pos.step_angle) 
+#     # Update the distances and angles:
+#     # next_position = agent.pos.calc_next_point(agent.pos.current_point, agent.pos.step_distance, agent.pos.step_angle) 
 
-    return next_position
+#     return next_position
 
 def choose_params(timestamp):
     this_season = check_time_of_year(timestamp)

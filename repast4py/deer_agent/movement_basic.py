@@ -36,14 +36,14 @@ class BaseMoveModel(object):
         '''
         Calculate a random distance to step
         '''
-        step_distance = 0
+        step_distance = 1
         return step_distance
     
     def calculate_random_turn(self):
         '''
-        Calculate a random turn angle
+        Go straight, or 90 deg left. (why is positive turn left?) 
         '''
-        turn_angle = 0
+        turn_angle = np.random.choice([-np.pi/2, 0 , np.pi/2])
         return turn_angle
     
     def step(self):
@@ -119,68 +119,68 @@ class RandomMovement(BaseMoveModel):
 ####################################
 ## Movement Helper Classes        ##
 ####################################
-@dataclass
-class Point:
-    '''
-    Hold X,Y and optionally Z coords.
-    '''
-    x: float
-    y: float   
-    z: float = 0.0 
+# @dataclass
+# class Point:
+#     '''
+#     Hold X,Y and optionally Z coords.
+#     '''
+#     x: float
+#     y: float   
+#     z: float = 0.0 
     
 
-@dataclass
-class Position_Vector:
-    last_point: Point
-    current_point: Point
-    centroid: Point
-    heading_to_centroid: float = 0.0
-    distance_to_centroid: float = 0.0
-    heading_from_prev: float = 0.0
-    step_distance: float = 0.0
-    turn_angle: float = 0.0
+# @dataclass
+# class Position_Vector:
+#     last_point: Point
+#     current_point: Point
+#     centroid: Point
+#     heading_to_centroid: float = 0.0
+#     distance_to_centroid: float = 0.0
+#     heading_from_prev: float = 0.0
+#     step_distance: float = 0.0
+#     turn_angle: float = 0.0
 
-    def __post_init__(self):
-        self.calc_dist_and_angle()
+#     def __post_init__(self):
+#         self.calc_dist_and_angle()
 
-    def calc_dist_and_angle(self):
+#     def calc_dist_and_angle(self):
         
-        '''
-        Calculate the distance and angle to centroid
-        using euclidean maths. Great circle be damned!
-        https://stackoverflow.com/questions/1401712/how-can-the-euclidean-distance-be-calculated-with-numpy
-        https://stackoverflow.com/questions/31735499/calculate-angle-clockwise-between-two-points
+#         '''
+#         Calculate the distance and angle to centroid
+#         using euclidean maths. Great circle be damned!
+#         https://stackoverflow.com/questions/1401712/how-can-the-euclidean-distance-be-calculated-with-numpy
+#         https://stackoverflow.com/questions/31735499/calculate-angle-clockwise-between-two-points
 
-        Need to do some fiddling to get North as 0 degrees
-        '''
-        a = np.array((self.current_point.x, self.current_point.y, self.current_point.z))
-        b = np.array((self.centroid.x, self.centroid.y, self.centroid.z))
-        self.distance_to_centroid = np.linalg.norm(a-b)
+#         Need to do some fiddling to get North as 0 degrees
+#         '''
+#         a = np.array((self.current_point.x, self.current_point.y, self.current_point.z))
+#         b = np.array((self.centroid.x, self.centroid.y, self.centroid.z))
+#         self.distance_to_centroid = np.linalg.norm(a-b)
         
-        dx = self.centroid.x - self.current_point.x
-        dy = self.centroid.y - self.current_point.y
-        angle_radians = np.arctan2(dx, dy)
-        self.heading_to_centroid = (angle_radians) % (2 * np.pi) # Compass direction of travel between current_pos and centroid 
+#         dx = self.centroid.x - self.current_point.x
+#         dy = self.centroid.y - self.current_point.y
+#         angle_radians = np.arctan2(dx, dy)
+#         self.heading_to_centroid = (angle_radians) % (2 * np.pi) # Compass direction of travel between current_pos and centroid 
 
-        dx = self.current_point.x - self.last_point.x
-        dy = self.current_point.y - self.last_point.y
-        angle_radians = np.arctan2(dx, dy)
-        self.heading_from_prev = (angle_radians) % (2 * np.pi) # Compass direction of travel between last_pos and current_pos 
+#         dx = self.current_point.x - self.last_point.x
+#         dy = self.current_point.y - self.last_point.y
+#         angle_radians = np.arctan2(dx, dy)
+#         self.heading_from_prev = (angle_radians) % (2 * np.pi) # Compass direction of travel between last_pos and current_pos 
     
-    def calc_next_point(self, initial_point, step_distance, turn_angle):
-        '''
-        When given a distance and angle calculate the X and Y coords of it
-        when starting from a current position. 
+#     def calc_next_point(self, initial_point, step_distance, turn_angle):
+#         '''
+#         When given a distance and angle calculate the X and Y coords of it
+#         when starting from a current position. 
 
-        Turn Angle = Angle(Prev, Current) - Angle(Current, Next)
-        '''
-        self.calc_dist_and_angle()
+#         Turn Angle = Angle(Prev, Current) - Angle(Current, Next)
+#         '''
+#         self.calc_dist_and_angle()
 
-        next_x = initial_point.x + step_distance*np.si(turn_angle)
-        next_y = initial_point.y + step_distance*np.cos(turn_angle)
+#         next_x = initial_point.x + step_distance*np.si(turn_angle)
+#         next_y = initial_point.y + step_distance*np.cos(turn_angle)
         
-        next_point = Point(next_x,next_y)
-        return next_point
+#         next_point = Point(next_x,next_y)
+#         return next_point
     
 
 # @dataclass

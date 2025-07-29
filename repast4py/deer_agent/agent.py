@@ -9,13 +9,15 @@ from enum import Enum
 
 import datetime
 import numpy as np
+import math
 import uuid
 import ast
 
 import logging as pylog # Repast logger is called as "logging"
-from .movement import *
+# from .movement import *
 from .behaviour import *
 from .disease import *
+from . import behaviour, time_functions
 
 log = pylog.getLogger(__name__)
 
@@ -62,19 +64,20 @@ class Deer_Config(object):
     centroid_y: float = 0.0
     heading_from_prev: float = 0.0
     heading_to_centroid: float = 0.0
+    distance_to_centroid: float =0.0
     step_dist: float = 0.0
     turn_angle: float = 0.0
     timestamp: datetime.datetime = datetime.datetime.fromisoformat('1970-01-01')
 
-    def __post_init__(self):
-        '''
-        Assume the start point of all deer agents
-        is also their last/current point and the centroid
-        '''
-        last_point = Point(self.current_x, self.current_y)
-        current_point = Point(self.current_x, self.current_y)
-        centroid = Point(self.current_x, self.current_y)
-        self.pos = Position_Vector(last_point, current_point, centroid, 0 ,0) 
+    # def __post_init__(self):
+    #     '''
+    #     Assume the start point of all deer agents
+    #     is also their last/current point and the centroid
+    #     '''
+        # last_point = Point(self.current_x, self.current_y)
+        # current_point = Point(self.current_x, self.current_y)
+        # centroid = Point(self.current_x, self.current_y)
+        # self.pos = Position_Vector(last_point, current_point, centroid, 0 ,0) 
     
     @classmethod
     def rand_factory(cls, x, y, params):
@@ -110,10 +113,7 @@ class Deer_Config(object):
             behaviour_timer = 0,
             explore_end_datetime = initial_timestamp + datetime.timedelta(hours=rndm.randint(12, 24)),
             disease_end_datetime = disease_end_datetime,
-            is_dead = False,
-            # pos = Position_Vector(last_point = Point(initial_x, initial_y),
-            #                       current_point = Point(initial_x, initial_y),
-            #                       centroid = Point(initial_x, initial_y) ),
+            is_dead = False, 
             current_x = initial_x,
             current_y = initial_y,
             prev_x = 0,
@@ -122,6 +122,7 @@ class Deer_Config(object):
             centroid_y =0.0,
             heading_from_prev = 0.0,
             heading_to_centroid = 0.0,
+            distance_to_centroid = 0.0,
             step_dist = 0,
             turn_angle = 0,
             timestamp = initial_timestamp,)
@@ -176,6 +177,7 @@ class DeerAgent(core.Agent):
         self.centroid_y = agent_cfg.centroid_y
         self.heading_from_prev = agent_cfg.heading_from_prev
         self.heading_to_centroid = agent_cfg.heading_to_centroid
+        self.distance_to_centroid = agent_cfg.distance_to_centroid
         self.step_dist = agent_cfg.step_dist
         self.turn_angle = agent_cfg.turn_angle
         self.timestamp = agent_cfg.timestamp
@@ -205,7 +207,8 @@ class DeerAgent(core.Agent):
         agent_cfg.centroid_x = self.centroid_x
         agent_cfg.centroid_y = self.centroid_y
         agent_cfg.heading_from_prev = self.heading_from_prev
-        agent_cfg.heading_to_centroid = self.heading_to_centroid  
+        agent_cfg.heading_to_centroid = self.heading_to_centroid
+        agent_cfg.distance_to_centroid = self.distance_to_centroid
         agent_cfg.step_dist = self.step_dist
         agent_cfg.turn_angle = self.turn_angle
         agent_cfg.timestamp = self.timestamp  
@@ -229,56 +232,86 @@ class DeerAgent(core.Agent):
         cfg = self.get_cfg()
         log.debug(cfg)
         return (self.uid,
-                cfg)
-     
-    def calc_next_point(self, step_distance, turn_angle):
+                cfg) 
+    
+    def proj_to_repast(self, x_proj, y_proj,
+                        xy_resolution, image_bounds):
+        '''
+        Take repast grid x,y position and 
+        turn it into a 5070 projection
+
+        bbox= {'left':1595925.0, 
+                'bottom':1641105.0, 
+                'right':1952145.0, 
+                'top':1979385.0})
+        '''   
+        log.debug(f'--- Change Repast Grid to 5070 Projection using xy_resolution: {xy_resolution}')
+        x_repast = (x_proj - image_bounds.left)/xy_resolution[0]
+        y_repast = -(y_proj- image_bounds.top )/xy_resolution[1]
+    
+        return x_repast, y_repast
+    
+    def repast_to_proj(self, x_repast, y_repast, 
+                        xy_resolution, image_bounds):
+        '''
+        Take repast grid x,y position and 
+        turn it into a 5070 projection
+        ''' 
+        log.debug('--- Change 5070 Projection to Repast Grid')
+        x_proj = x_repast*xy_resolution[0] + image_bounds.left 
+        y_proj = image_bounds.top - y_repast*xy_resolution[1]
+        return x_proj, y_proj
+    
+    def bearing_to_turn_angle(self, bearing):
+        '''
+        Take a bearing and convert it into the turn 
+        required to reach that bearing
+        '''
+        log.debug('--- Calc Bearing from Angles')
+        turn_angle = bearing
+        return turn_angle
+    
+    def turn_angle_to_bearing(self, turn_angle):
+        '''
+        Take a turn angle and convert it into
+        compass bearing.
+        '''
+        log.debug('--- Calc Angle from Bearing')
+        bearing = turn_angle
+        return bearing
+    
+    def calc_bearing_from_points(self, x1, y1, x2, y2):
+        '''
+        Calculate compass bearing from (x1,y1) to (x2,y2)
+        '''
+        log.debug('--- Calc Bearing from Points')
+        dx = x2 - x1
+        dy = y2 - y1 
+        angle_radians = np.arctan2(dx, dy) 
+        angle_radians = np.mod(angle_radians + np.pi, 2*np.pi) - np.pi 
+        return angle_radians
+
+    def calc_next_point(self, xy_resolution, image_bounds): 
         '''
         When given a distance and angle calculate the X and Y coords of it
         when starting from a current position. 
-
-        Turn Angle = Angle(Prev, Current) - Angle(Current, Next)
         ''' 
-        next_x = self.current_x + step_distance*np.sin(self.heading_from_prev + turn_angle)
-        next_y = self.current_y + step_distance*np.cos(self.heading_from_prev + turn_angle)
-        
-        # Update all the class items:
         self.prev_x = self.current_x
         self.prev_y = self.current_y
+        prev_x_proj, prev_y_proj = self.repast_to_proj(self.prev_x, self.prev_y, xy_resolution, image_bounds) 
 
-        self.current_x = next_x
-        self.current_y = next_y
+        current_x_proj = prev_x_proj + self.step_distance*np.sin(self.heading_from_prev + self.turn_angle)*30.0
+        current_y_proj = prev_y_proj + self.step_distance*np.cos(self.heading_from_prev + self.turn_angle)*30.0
+        self.current_x, self.current_y = self.proj_to_repast(current_x_proj, current_y_proj, xy_resolution, image_bounds)
+ 
+        x_centroid_proj, y_centroid_proj = self.repast_to_proj(self.centroid_x, self.centroid_y, xy_resolution, image_bounds)
+    
+        self.heading_to_centroid = self.calc_bearing_from_points(current_x_proj, current_y_proj, x_centroid_proj, y_centroid_proj)   
+        self.heading_from_prev   = self.calc_bearing_from_points(prev_x_proj, prev_y_proj, current_x_proj, current_y_proj) 
 
         a = np.array((self.current_x, self.current_y))
         b = np.array((self.centroid_x, self.centroid_y))
-        self.distance_to_centroid = np.linalg.norm(a-b) # Euclidian distance from current location to centroid. NOTE: this might be in repast grid units not meters.
+        self.distance_to_centroid = np.linalg.norm(a-b) # Euclidian distance from current location to centroid. NOTE: this is in repast grid units not meters.
 
-        dx = self.centroid_x - self.current_x
-        dy = self.centroid_y - self.current_y
-        angle_radians = np.arctan2(dx, dy)
-        self.heading_to_centroid = (angle_radians) % (2 * np.pi) # Compass direction of travel between current_pos and centroid 
-
-        dx = self.current_x - self.prev_x
-        dy = self.current_y - self.prev_y
-        angle_radians = np.arctan2(dx, dy)
-        self.heading_from_prev = (angle_radians) % (2 * np.pi) # Compass direction of travel between last_pos and current_pos
-
-        self.step_dist = step_distance
-        self.turn_angle = turn_angle
         return 
-
-    # def calculate_next_pos(self, xy_resolution):
-    #     '''
-    #     Take last known position, home range centroid, and average_speed
-    #     and then calculate the location for the next step. Calculations 
-    #     change based on:
-    #      - behaviour state: foraging/resting travels less than others
-    #      - distance away from centroid: animals prefer to stay close to home range
-    #      - average speed: faster animals move faster... 
-
-    #      Seeing as how this step is going to be run billions of times 
-    #      computational efficiency is important. 
-    #     ''' 
-    #     # CurrentX/Y should be the same as self.pos.current_point
-    #     # log.debug(f'Pos Vector: {self.pos}') 
-    #     next_position = movement.step(self, xy_resolution) 
-    #     return next_position.x, next_position.y
+ 

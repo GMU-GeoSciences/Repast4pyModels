@@ -36,7 +36,7 @@ make deer_run
 ```
 
 ## Other ReadMe's
-There are additional readme's in this repo to futher explain the code and it's functionality.
+There are additional readme's in this repo to further explain the code and it's functionality.
 
 - [Config](./config/README.md)
 - [MakeFiles](./make-scripts/README.md)
@@ -64,4 +64,7 @@ Hopper can use singularity containers to run code. It also looks like it's not t
 ## Additional Reading
 
 [Makefile tutorial](https://makefiletutorial.com/#the-essence-of-make)
+
 [Deer Landscape Disease Model](https://www.researchgate.net/publication/363077733_The_effect_of_landscape_transmission_mode_and_social_behavior_on_disease_transmission_Simulating_the_transmission_of_chronic_wasting_disease_in_white-tailed_deer_Odocoileus_virginianus_populations_usi)
+
+[Hidden Markov Modelling for Animal Movement](https://cran.r-project.org/web/packages/moveHMM/vignettes/moveHMM-guide.pdf)
