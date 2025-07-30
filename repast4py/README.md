@@ -24,3 +24,8 @@ So after the docker/singularity environment is setup and the config applied the 
   - The sim is started.
   - The sim is stepped through each time step, agents are moved around, steps are logged.
   - The sim is ended.
+
+
+## Repast Spatial
+
+The method used to contain spatial information, specifically a raster. 

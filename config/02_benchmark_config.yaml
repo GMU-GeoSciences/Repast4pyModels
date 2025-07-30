@@ -21,15 +21,16 @@ time:
  
 logging: 
   loglevel: INFO # can be DEBUG, INFO, WARNING, ERROR
-  agent_log_file: './output/ex1_run2.csv'
-  model_meta_file: './output/ex1_run2.json'
-  gpkg_log_file: './output/ex1_run2.gpkg'
-  centroid_log_file: './output/ex1_run2.gpkg'
+  agent_log_file: './output/bench2.csv'
+  model_meta_file: './output/bench2.json'
+  gpkg_log_file: './output/bench2.gpkg'
+  centroid_log_file: './output/bench2.gpkg'
 
 # https://columbiaassociation.org/open-space/oh-deer-tips-and-tricks-for-living-with-deer-in-columbia/#:~:text=The%20Howard%20County%20Department%20of,15%20deer%20per%20square%20mile.
 deer:
-  pop_size: 1000  # Number of deer agents to simulate  
+  pop_size: 100  # Number of deer agents to simulate  
   deer_vision_range: 400 # [meters]. Edge length of vision square surrounding agent. Used for finding nearby agents and home range suitability
+  male_proportion: 0.36 # +-36% of GPS points are from male deer.
 
 deer_control_vars:  # From https://www.researchgate.net/publication/363077733_The_effect_of_landscape_transmission_mode_and_social_behavior_on_disease_transmission_Simulating_the_transmission_of_chronic_wasting_disease_in_white-tailed_deer_Odocoileus_virginianus_populations_usi
   movement_method: # Movement model to use. Can be DLD, HMM2, HMM3, HMM3_Canopy, still, or random 
@@ -73,8 +74,8 @@ deer_control_vars:  # From https://www.researchgate.net/publication/363077733_Th
   
   # Homerange Params
   homerange:
-    radius: 1000 #[meters] Used in HMM3_Canopy models. Agents beyond this range from home-range centroid choose angles that take them back home 
-    turn_choices: 8 #Number of random choices to choose from. When agent is outside radius, create X number of turns and choose the one that is closest to return-to-centroid angle.
+    radius: 2000 #[meters] Used in HMM3_Canopy models. Agents beyond this range from home-range centroid choose angles that take them back home 
+    turn_choices: 4 #Number of random choices to choose from. When agent is outside radius, create X number of turns and choose the one that is closest to return-to-centroid angle.
     max: 100
     min: 40
     suitability_threshold: 80 

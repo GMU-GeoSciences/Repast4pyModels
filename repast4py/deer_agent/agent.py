@@ -88,6 +88,7 @@ class Deer_Config(object):
         initial_y = y
         initial_timestamp = datetime.datetime.fromisoformat(params['time']['start_time'])
         initial_infection_chance = float(params['deer_control_vars']['disease']['infectious_start_rate'])
+        male_proportion = params['deer']['male_proportion']
         
         if rndm.random() < initial_infection_chance:
             # Agent should be infected 
@@ -104,7 +105,7 @@ class Deer_Config(object):
             random_seed = rndm.randint(1, 100000),
             group_id = None,
             birth_date = initial_timestamp - datetime.timedelta(days=rndm.randint(1, 2000)),
-            is_male = rndm.random() < 0.5,
+            is_male = rndm.random() < male_proportion,  
             is_fawn = rndm.random() < 0.2,
             gestation_timer = 0,
             has_homerange = False,  
