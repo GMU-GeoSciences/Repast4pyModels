@@ -337,19 +337,19 @@ class HMM_MoveModel_3_States(BaseMoveModel):
         
         assert len(self.movement_params) == self.movement_n_states, "Too few movement params for number of movement states." 
 
-        # HMM Covariate Intercept matrix
-        #                                               1 -> 2      1 -> 3      2 -> 1      2 -> 3     3 -> 1    3 -> 2
-        self.hmm_covariate_intercept = np.asarray([-1.61019298,-1.62130884,-1.79254789,-1.72515496,-2.2150039,-0.665865790])
+        # HMM Covariate Intercept matrix for suitability.tiff
+        #                                              1 -> 2      1 -> 3      2 -> 1      2 -> 3     3 -> 1    3 -> 2
+        # self.hmm_covariate_intercept = np.asarray([-1.61019298,-1.62130884,-1.79254789,-1.72515496,-2.2150039,-0.665865790])
  
-        # HMM Covariate Raster Coeff matrix
-        self.hmm_covariate_coeff = np.asarray([0.09487647,  0.09543828, -0.08549171,  0.09086488, -0.1138435, 0.006435542])
+        # HMM Covariate Raster Coeff matrix for suitability.tiff
+        # self.hmm_covariate_coeff = np.asarray([0.09487647,  0.09543828, -0.08549171,  0.09086488, -0.1138435, 0.006435542])
 
-        # assert len(self.hmm_covariate_intercept) == self.movement_n_states, "Covariate intercept matrix wrong size for number of hidden states."
-        # assert len(self.hmm_covariate_coeff) == self.movement_n_states, "Covariate coefficient matrix wrong size for number of hidden states."
+        # Intercept for canopy.tiff
+        self.hmm_covariate_intercept = np.asarray([-1.80329097,-2.332902740,-0.842190949,-2.07295724,-1.333573276,-1.95697222])
 
-        # TODO: HMM should randomly select the starting state based off the model fit params.
-        # Initial distribution:
-        # --------------------
+        # HMM Covariate Raster Coeff matrix for canopy.tiff
+        self.hmm_covariate_coeff = np.asarray([  0.01124452, -0.001542683, 0.003304142, -0.01484277, 0.005627201, 0.01540365])
+
         # [1] 0.1190081 0.4928453 0.3881465
         self.current_state = 0 
         self.step_resolution = 30.0
